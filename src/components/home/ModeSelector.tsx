@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Users, Zap, ArrowRight, LogIn, Sparkles } from 'lucide-react';
 import { useRoomStore } from '@/store/useRoomStore';
+import DifficultySelector from '@/components/shared/DifficultySelector';
+import type { DifficultyConfig, DifficultyLevel } from '@/types';
 
 interface CreateModalProps {
   open: boolean;
@@ -191,22 +193,18 @@ function JoinModal({ open, onClose, onSubmit }: JoinModalProps) {
 export default function ModeSelector() {
   const navigate = useNavigate();
   const { createRoom, joinRoom } = useRoomStore();
-  const initSoloGame = useSoloInitGame();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
 
-  function useSoloInitGame() {
-    // we import dynamically to avoid circular issues? no, store is fine but solo store
-    // Just use window navigation approach
-    return (name: string) => {
-      try { localStorage.setItem('wordchain_player_name', name); } catch {}
-      navigate('/game/solo');
-    };
-  }
-
   const [soloName, setSoloName] = useState('');
   const [showSolo, setShowSolo] = useState(false);
+  const [showDifficulty, setShowDifficulty] = useState(false);
   const storedName = useRoomStore(s => s.localPlayerName);
+
+  const startSoloWithDifficulty = (name: string, difficulty: DifficultyLevel) => {
+    try { localStorage.setItem('wordchain_player_name', name); } catch { /* ignore */ }
+    navigate(`/game/solo?difficulty=${difficulty}`);
+  };
 
   const modes = [
     {
@@ -350,7 +348,9 @@ export default function ModeSelector() {
                   onClick={() => {
                     const n = (soloName || storedName || '脑洞玩家').trim();
                     if (!n) return;
-                    initSoloGame(n);
+                    setSoloName(n);
+                    setShowSolo(false);
+                    setShowDifficulty(true);
                   }}
                 >
                   开始接龙
@@ -361,6 +361,16 @@ export default function ModeSelector() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <DifficultySelector
+        open={showDifficulty}
+        onClose={() => setShowDifficulty(false)}
+        onSelect={(config: DifficultyConfig) => {
+          const n = soloName || storedName || '脑洞玩家';
+          startSoloWithDifficulty(n.trim(), config.level);
+          setShowDifficulty(false);
+        }}
+      />
     </section>
   );
 }

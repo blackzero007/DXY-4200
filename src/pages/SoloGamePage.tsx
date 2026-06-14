@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RotateCcw, Pause, Play, Home } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, RotateCcw, Pause, Shield, Zap, Flame } from 'lucide-react';
 import AnimatedGradientBg from '@/components/shared/AnimatedGradientBg';
 import FloatingParticles from '@/components/shared/FloatingParticles';
 import WordChainDisplay from '@/components/game/WordChainDisplay';
@@ -10,9 +10,24 @@ import EndGameModal from '@/components/game/EndGameModal';
 import Avatar from '@/components/shared/Avatar';
 import { useSoloGameStore } from '@/store/useSoloGameStore';
 import { formatDuration } from '@/utils/helpers';
+import type { DifficultyLevel } from '@/types';
+import { DIFFICULTY_CONFIGS } from '@/types';
+
+const DIFFICULTY_ICONS: Record<DifficultyLevel, typeof Shield> = {
+  easy: Shield,
+  normal: Zap,
+  hard: Flame,
+};
+
+const DIFFICULTY_COLORS: Record<DifficultyLevel, string> = {
+  easy: 'from-emerald-400 to-teal-500',
+  normal: 'from-amber-400 to-orange-500',
+  hard: 'from-rose-500 to-red-500',
+};
 
 export default function SoloGamePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     chain,
     currentWord,
@@ -23,6 +38,7 @@ export default function SoloGamePage() {
     playerName,
     validationMessage,
     lastValidationValid,
+    difficulty,
     initGame,
     submitWord,
     endGame,
@@ -38,8 +54,13 @@ export default function SoloGamePage() {
       try { return localStorage.getItem('wordchain_player_name') || '脑洞玩家'; }
       catch { return '脑洞玩家'; }
     })();
-    initGame(undefined, savedName);
-  }, [initGame]);
+    const urlDifficulty = searchParams.get('difficulty') as DifficultyLevel | null;
+    const validLevels: DifficultyLevel[] = ['easy', 'normal', 'hard'];
+    const difficultyLevel = validLevels.includes(urlDifficulty as DifficultyLevel)
+      ? urlDifficulty as DifficultyLevel
+      : 'normal';
+    initGame(undefined, savedName, difficultyLevel);
+  }, [initGame, searchParams]);
 
   useEffect(() => {
     if (status !== 'playing') return;
@@ -103,8 +124,17 @@ export default function SoloGamePage() {
             <div className="flex items-center gap-3 min-w-0">
               <Avatar name={playerName} size="sm" isOwner />
               <div className="min-w-0">
-                <div className="font-medium text-sm md:text-base text-white truncate">
+                <div className="font-medium text-sm md:text-base text-white truncate flex items-center gap-2">
                   {playerName}
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-white bg-gradient-to-r ${DIFFICULTY_COLORS[difficulty.level]}`}
+                  >
+                    {(() => {
+                      const Icon = DIFFICULTY_ICONS[difficulty.level];
+                      return <Icon className="w-3 h-3" />;
+                    })()}
+                    {DIFFICULTY_CONFIGS[difficulty.level].label}
+                  </span>
                 </div>
                 <div className="text-[11px] md:text-xs text-white/55">
                   单人模式 · 接词 <span className="text-purple-300 font-bold">{score}</span> 个
@@ -193,12 +223,25 @@ export default function SoloGamePage() {
             </div>
             <div className="glass-panel rounded-3xl p-5 border border-white/10">
               <h3 className="font-display text-lg text-white mb-3 flex items-center gap-2">
-                <span>💡</span> 小贴士
+                <span>🎮</span> 当前规则
               </h3>
               <ul className="space-y-2 text-sm text-white/65">
-                <li>· 尾字+同音都算哦</li>
-                <li>· 不限成语，越开脑洞越好</li>
-                <li>· 挑战一下自己的词库吧！</li>
+                <li className="flex items-start gap-2">
+                  <span className="text-white/40">·</span>
+                  <span>最少 <span className="font-bold text-white/85">{difficulty.minLength}</span> 个字</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-white/40">·</span>
+                  <span>{difficulty.allowHomophone ? '允许' : '禁止'}使用同音字</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-white/40">·</span>
+                  <span>{difficulty.containsMode === 'contains' ? '包含上词尾字即可' : '必须以上词尾字开头'}</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-white/40">·</span>
+                  <span>不限成语，越开脑洞越好</span>
+                </li>
               </ul>
             </div>
           </motion.div>

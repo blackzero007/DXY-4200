@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { ChainWord, SoloGameState } from '@/types';
+import type { ChainWord, SoloGameState, DifficultyConfig, DifficultyLevel } from '@/types';
+import { DIFFICULTY_CONFIGS } from '@/types';
 import { getRandomStartWord, getLastChar } from '@/utils/wordDatabase';
 import { generatePlayerId, generateWordId } from '@/utils/helpers';
 import { validateWord } from '@/utils/wordValidator';
@@ -9,7 +10,8 @@ interface SoloGameStore extends SoloGameState {
   playerName: string;
   validationMessage: string;
   lastValidationValid: boolean | null;
-  initGame: (startWord?: string, playerName?: string) => void;
+  difficulty: DifficultyConfig;
+  initGame: (startWord?: string, playerName?: string, difficulty?: DifficultyLevel | DifficultyConfig) => void;
   submitWord: (word: string) => { success: boolean; message: string };
   endGame: () => void;
   restart: () => void;
@@ -36,6 +38,12 @@ const storedPlayerName = (() => {
   }
 })();
 
+function resolveDifficulty(difficulty?: DifficultyLevel | DifficultyConfig): DifficultyConfig {
+  if (!difficulty) return DIFFICULTY_CONFIGS.normal;
+  if (typeof difficulty === 'string') return DIFFICULTY_CONFIGS[difficulty];
+  return difficulty;
+}
+
 export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
   playerId: storedPlayerId,
   playerName: storedPlayerName || '脑洞玩家',
@@ -47,11 +55,13 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
   status: 'playing',
   validationMessage: '',
   lastValidationValid: null,
+  difficulty: DIFFICULTY_CONFIGS.normal,
 
-  initGame: (startWord, playerName) => {
+  initGame: (startWord, playerName, difficulty) => {
     const word = startWord || getRandomStartWord();
     const name = playerName || storedPlayerName || '脑洞玩家';
-    try { localStorage.setItem('wordchain_player_name', name); } catch {}
+    const diffConfig = resolveDifficulty(difficulty);
+    try { localStorage.setItem('wordchain_player_name', name); } catch { /* ignore */ }
     const now = Date.now();
     const firstChain: ChainWord = {
       id: generateWordId(),
@@ -72,6 +82,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
       playerName: name,
       validationMessage: '',
       lastValidationValid: null,
+      difficulty: diffConfig,
     });
   },
 
@@ -80,7 +91,12 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
     if (state.status !== 'playing') {
       return { success: false, message: '游戏已结束' };
     }
-    const result = validateWord(word, state.currentWord, state.chain);
+    const { minLength, allowHomophone, containsMode } = state.difficulty;
+    const result = validateWord(word, state.currentWord, state.chain, {
+      minLength,
+      allowHomophone,
+      containsMode,
+    });
     if (!result.valid) {
       set({ validationMessage: result.message, lastValidationValid: false });
       return { success: false, message: result.message };
@@ -109,6 +125,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
   endGame: () => set({ status: 'ended' }),
 
   restart: () => {
+    const { difficulty } = get();
     const word = getRandomStartWord();
     const now = Date.now();
     const firstChain: ChainWord = {
@@ -129,6 +146,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
       status: 'playing',
       validationMessage: '',
       lastValidationValid: null,
+      difficulty,
     });
   },
 

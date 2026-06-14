@@ -70,3 +70,41 @@ export interface SoloGameState {
 }
 
 export type GameMode = 'solo' | 'room';
+
+export type DifficultyLevel = 'easy' | 'normal' | 'hard';
+
+export interface DifficultyConfig {
+  level: DifficultyLevel;
+  label: string;
+  description: string;
+  minLength: number;
+  allowHomophone: boolean;
+  containsMode: 'startWith' | 'contains';
+}
+
+export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
+  easy: {
+    level: 'easy',
+    label: '简单',
+    description: '允许同音字 · 最少2字 · 包含即可',
+    minLength: 2,
+    allowHomophone: true,
+    containsMode: 'contains',
+  },
+  normal: {
+    level: 'normal',
+    label: '普通',
+    description: '允许同音字 · 最少2字 · 首字匹配',
+    minLength: 2,
+    allowHomophone: true,
+    containsMode: 'startWith',
+  },
+  hard: {
+    level: 'hard',
+    label: '困难',
+    description: '禁用同音字 · 最少3字 · 严格首字匹配',
+    minLength: 3,
+    allowHomophone: false,
+    containsMode: 'startWith',
+  },
+};
