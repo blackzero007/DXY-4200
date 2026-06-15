@@ -10,6 +10,7 @@ import EndGameModal from '@/components/game/EndGameModal';
 import Avatar from '@/components/shared/Avatar';
 import { useSoloGameStore } from '@/store/useSoloGameStore';
 import { formatDuration } from '@/utils/helpers';
+import { playSuccessSound, playFailSound, playGameEndSound } from '@/utils/soundFeedback';
 import type { DifficultyLevel } from '@/types';
 import { DIFFICULTY_CONFIGS } from '@/types';
 
@@ -72,6 +73,7 @@ export default function SoloGamePage() {
 
   useEffect(() => {
     if (status === 'ended' && chain.length > 1) {
+      playGameEndSound();
       setShowEnd(true);
     }
   }, [status, chain.length]);
@@ -79,7 +81,10 @@ export default function SoloGamePage() {
   const handleSubmit = (word: string) => {
     const result = submitWord(word);
     if (result.success) {
+      playSuccessSound();
       setTimeout(() => clearValidation(), 1600);
+    } else {
+      playFailSound();
     }
     return result;
   };

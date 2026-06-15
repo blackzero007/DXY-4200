@@ -13,6 +13,7 @@ import EndGameModal from '@/components/game/EndGameModal';
 import { useRoomStore } from '@/store/useRoomStore';
 import { useBroadcastChannel } from '@/hooks/useBroadcastChannel';
 import { copyToClipboard } from '@/utils/helpers';
+import { playSuccessSound, playFailSound, playGameEndSound } from '@/utils/soundFeedback';
 
 export default function RoomPage() {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -72,6 +73,7 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (room && room.status === 'ended' && room.chain.length > 1 && !showEnd) {
+      playGameEndSound();
       setShowEnd(true);
     }
   }, [room?.status, room?.chain.length, showEnd]);
@@ -104,8 +106,11 @@ export default function RoomPage() {
   const handleSubmit = (word: string) => {
     const result = submitWord(localPlayerId, word);
     if (result.success) {
+      playSuccessSound();
       setTimeout(() => clearValidation(), 1600);
       setTimeout(() => broadcast('add-word'), 30);
+    } else {
+      playFailSound();
     }
     return result;
   };
