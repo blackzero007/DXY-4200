@@ -66,28 +66,32 @@ export function useChainStats(chain: ChainWord[], playerId?: string): ChainStats
       }))
       .sort((a, b) => b.count - a.count);
 
-    let longestStreak = 1;
-    let longestStreakAuthorId = chain[0].authorId;
-    let longestStreakAuthorName = chain[0].authorName;
-    let currentStreak = 1;
-    let currentAuthor = chain[0].authorId;
-    for (let i = 1; i < chain.length; i++) {
-      if (chain[i].authorId === currentAuthor && chain[i].authorId !== 'system') {
+    let longestStreak = 0;
+    let longestStreakAuthorId: string | null = null;
+    let longestStreakAuthorName: string | null = null;
+    let currentStreak = 0;
+    let currentAuthor: string | null = null;
+
+    for (let i = 0; i < chain.length; i++) {
+      const cw = chain[i];
+      if (cw.authorId === 'system') {
+        currentStreak = 0;
+        currentAuthor = null;
+        continue;
+      }
+
+      if (cw.authorId === currentAuthor) {
         currentStreak++;
-        if (currentStreak > longestStreak) {
-          longestStreak = currentStreak;
-          longestStreakAuthorId = chain[i].authorId;
-          longestStreakAuthorName = chain[i].authorName;
-        }
       } else {
         currentStreak = 1;
-        currentAuthor = chain[i].authorId;
+        currentAuthor = cw.authorId;
       }
-    }
-    if (longestStreakAuthorId === 'system') {
-      longestStreak = 0;
-      longestStreakAuthorId = null;
-      longestStreakAuthorName = null;
+
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+        longestStreakAuthorId = cw.authorId;
+        longestStreakAuthorName = cw.authorName;
+      }
     }
 
     const responseTimes: number[] = [];
