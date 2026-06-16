@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Star, Clock, Sparkles, RotateCcw, Home, Medal, Zap } from 'lucide-react';
+import { Trophy, Star, Clock, Sparkles, RotateCcw, Home, Medal, Zap, Share2, Download, Copy, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ChainWord, Player } from '@/types';
 import { formatDuration } from '@/utils/helpers';
+import ShareCard, { prepareShareCardData } from './ShareCard';
+import { downloadCardAsImage, copyCardImageToClipboard, copyShareTextToClipboard } from '@/utils/shareUtils';
+import { useToast } from '@/components/toast/useToast';
 
 interface EndGameModalProps {
   open: boolean;
@@ -27,7 +30,11 @@ export default function EndGameModal({
   onRestart,
 }: EndGameModalProps) {
   const navigate = useNavigate();
+  const toast = useToast();
   const [show, setShow] = useState(open);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) setShow(true);
@@ -36,10 +43,65 @@ export default function EndGameModal({
   if (!show) return null;
 
   const wordCount = chain.length;
+  const score = chain.length - 1;
   const endTime = chain[chain.length - 1]?.timestamp || Date.now();
   const duration = endTime - startTime;
   const topPlayers = [...players].sort((a, b) => b.score - a.score).slice(0, 3);
   const authors = new Set(chain.filter(c => c.authorId !== 'system').map(c => c.authorId)).size;
+  const playerName = chain.find(c => c.authorId !== 'system')?.authorName || '脑洞玩家';
+
+  const shareCardData = prepareShareCardData(chain, startWord, score, playerName, mode);
+
+  const handleDownloadImage = async () => {
+    if (!shareCardRef.current || shareLoading) return;
+    setShareLoading(true);
+    try {
+      const success = await downloadCardAsImage(shareCardRef.current);
+      if (success) {
+        toast.success('卡片已保存到本地 📥');
+      } else {
+        toast.error('下载失败，请重试');
+      }
+    } catch {
+      toast.error('下载失败，请重试');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleCopyImage = async () => {
+    if (!shareCardRef.current || shareLoading) return;
+    setShareLoading(true);
+    try {
+      const success = await copyCardImageToClipboard(shareCardRef.current);
+      if (success) {
+        toast.success('图片已复制到剪贴板 📋');
+      } else {
+        toast.error('复制失败，请重试');
+      }
+    } catch {
+      toast.error('复制失败，请重试');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleCopyText = async () => {
+    if (shareLoading) return;
+    setShareLoading(true);
+    try {
+      const success = await copyShareTextToClipboard(shareCardData);
+      if (success) {
+        toast.success('文字已复制到剪贴板 📋');
+      } else {
+        toast.error('复制失败，请重试');
+      }
+    } catch {
+      toast.error('复制失败，请重试');
+    } finally {
+      setShareLoading(false);
+    }
+  };
 
   const medalColors = [
     'from-amber-300 to-amber-500',
@@ -137,7 +199,7 @@ export default function EndGameModal({
                 )}
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 mb-3">
                 <button
                   className="btn-secondary flex-1"
                   onClick={() => {
@@ -153,8 +215,74 @@ export default function EndGameModal({
                   {mode === 'daily' ? '再试一次' : '再来一局'}
                 </button>
               </div>
+
+              <button
+                className="w-full btn-secondary"
+                onClick={() => setShowShareModal(true)}
+              >
+                <Share2 className="w-4 h-4" />
+                分享战绩
+              </button>
             </div>
           </motion.div>
+
+          <AnimatePresence>
+            {showShareModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+                onClick={() => setShowShareModal(false)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                  className="flex flex-col items-center gap-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="relative">
+                    <ShareCard ref={shareCardRef} data={shareCardData} />
+                    <button
+                      onClick={() => setShowShareModal(false)}
+                      className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex gap-3 w-full max-w-md">
+                    <button
+                      className="btn-secondary flex-1"
+                      onClick={handleCopyText}
+                      disabled={shareLoading}
+                    >
+                      <Copy className="w-4 h-4" />
+                      复制文字
+                    </button>
+                    <button
+                      className="btn-secondary flex-1"
+                      onClick={handleCopyImage}
+                      disabled={shareLoading}
+                    >
+                      <Copy className="w-4 h-4" />
+                      复制图片
+                    </button>
+                    <button
+                      className="btn-primary flex-1"
+                      onClick={handleDownloadImage}
+                      disabled={shareLoading}
+                    >
+                      <Download className="w-4 h-4" />
+                      保存图片
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
