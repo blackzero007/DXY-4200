@@ -3,14 +3,29 @@ import { copyToClipboard } from './helpers';
 import type { ShareCardData } from '@/components/game/ShareCard';
 
 export async function captureElement(element: HTMLElement): Promise<HTMLCanvasElement> {
-  return html2canvas(element, {
-    backgroundColor: null,
-    scale: 2,
-    useCORS: true,
-    logging: false,
-    windowWidth: element.offsetWidth,
-    windowHeight: element.offsetHeight,
-  });
+  const parent = element.parentElement;
+  let originalTransform = '';
+  if (parent) {
+    originalTransform = parent.style.transform;
+    parent.style.transform = 'none';
+  }
+  
+  try {
+    return await html2canvas(element, {
+      backgroundColor: null,
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      windowWidth: 480,
+      windowHeight: 640,
+      width: 480,
+      height: 640,
+    });
+  } finally {
+    if (parent) {
+      parent.style.transform = originalTransform;
+    }
+  }
 }
 
 export async function downloadCardAsImage(element: HTMLElement, filename?: string): Promise<boolean> {

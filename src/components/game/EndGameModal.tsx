@@ -232,7 +232,7 @@ export default function EndGameModal({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+                className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-auto"
                 onClick={() => setShowShareModal(false)}
               >
                 <motion.div
@@ -240,43 +240,53 @@ export default function EndGameModal({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-                  className="flex flex-col items-center gap-4"
+                  className="flex flex-col items-center gap-4 w-full max-w-md"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="relative">
-                    <ShareCard ref={shareCardRef} data={shareCardData} />
+                  <div className="relative w-full flex justify-center">
+                    <div
+                      className="origin-center"
+                      style={{
+                        transform: 'scale(min(1, calc((100vw - 2rem) / 480), calc((100vh - 10rem) / 640)))',
+                      }}
+                    >
+                      <ShareCard ref={shareCardRef} data={shareCardData} />
+                    </div>
                     <button
                       onClick={() => setShowShareModal(false)}
-                      className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all"
+                      className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all z-10"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="flex gap-3 w-full max-w-md">
+                  <div className="flex gap-2 w-full max-w-md">
                     <button
-                      className="btn-secondary flex-1"
+                      className="btn-secondary flex-1 text-sm"
                       onClick={handleCopyText}
                       disabled={shareLoading}
                     >
                       <Copy className="w-4 h-4" />
-                      复制文字
+                      <span className="hidden sm:inline">复制文字</span>
+                      <span className="sm:hidden">文字</span>
                     </button>
                     <button
-                      className="btn-secondary flex-1"
+                      className="btn-secondary flex-1 text-sm"
                       onClick={handleCopyImage}
                       disabled={shareLoading}
                     >
                       <Copy className="w-4 h-4" />
-                      复制图片
+                      <span className="hidden sm:inline">复制图片</span>
+                      <span className="sm:hidden">图片</span>
                     </button>
                     <button
-                      className="btn-primary flex-1"
+                      className="btn-primary flex-1 text-sm"
                       onClick={handleDownloadImage}
                       disabled={shareLoading}
                     >
                       <Download className="w-4 h-4" />
-                      保存图片
+                      <span className="hidden sm:inline">保存图片</span>
+                      <span className="sm:hidden">保存</span>
                     </button>
                   </div>
                 </motion.div>
