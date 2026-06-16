@@ -198,12 +198,14 @@ export default function RoomPage() {
 
   const handleAutoPass = useCallback(() => {
     if (hasAutoPassedRef.current) return;
-    if (!room || room.status !== 'playing') return;
-    if (room.currentTurnPlayerId !== localPlayerId) return;
+    const state = useRoomStore.getState();
+    const latestRoom = state.room;
+    if (!latestRoom || latestRoom.status !== 'playing') return;
+    if (latestRoom.currentTurnPlayerId !== state.localPlayerId) return;
     hasAutoPassedRef.current = true;
-    passTurn(localPlayerId);
+    passTurn(state.localPlayerId);
     setTimeout(() => broadcast('pass-turn'), 30);
-  }, [room?.status, room?.currentTurnPlayerId, localPlayerId, passTurn, broadcast]);
+  }, [passTurn, broadcast]);
 
   useEffect(() => {
     if (countdownSeconds === 0 && isMyTurn && room?.status === 'playing') {

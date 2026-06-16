@@ -10,7 +10,6 @@ export function useBroadcastChannel(roomId: string | null, enabled: boolean = tr
     room,
     applyChannelMessage,
     updatePlayerActive,
-    lastReaction,
   } = useRoomStore();
 
   const sendMessage = useCallback(
@@ -107,17 +106,19 @@ export function useBroadcastChannel(roomId: string | null, enabled: boolean = tr
 
   const broadcast = useCallback(
     (type: ChannelMessageType, extraPayload?: any) => {
-      if (!room) return;
+      const latestRoom = useRoomStore.getState().room;
+      if (!latestRoom) return;
       const payload: any = {
-        room,
+        room: latestRoom,
         ...(extraPayload || {}),
       };
-      if (type === 'reaction' && lastReaction) {
-        payload.lastReaction = lastReaction;
+      const latestLastReaction = useRoomStore.getState().lastReaction;
+      if (type === 'reaction' && latestLastReaction) {
+        payload.lastReaction = latestLastReaction;
       }
       sendMessage(type, payload);
     },
-    [room, sendMessage, lastReaction]
+    [sendMessage]
   );
 
   return { sendMessage, broadcast };
