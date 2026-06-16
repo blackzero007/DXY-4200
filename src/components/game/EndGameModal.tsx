@@ -10,7 +10,7 @@ interface EndGameModalProps {
   chain: ChainWord[];
   startWord: string;
   startTime: number;
-  mode: 'solo' | 'room';
+  mode: 'solo' | 'room' | 'daily';
   players?: Player[];
   onClose: () => void;
   onRestart: () => void;
@@ -82,10 +82,14 @@ export default function EndGameModal({
               </motion.div>
 
               <h2 className="font-display text-3xl md:text-4xl text-center mb-1">
-                <span className="text-gradient-warm">接龙完成！</span>
+                <span className="text-gradient-warm">
+                  {mode === 'daily' ? '挑战完成！' : '接龙完成！'}
+                </span>
               </h2>
               <p className="text-center text-white/60 text-sm md:text-base mb-6">
-                你创造了一个{wordCount}词的脑洞词链
+                {mode === 'daily'
+                  ? `今日挑战成绩：${wordCount}个词`
+                  : `你创造了一个${wordCount}词的脑洞词链`}
               </p>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -138,15 +142,15 @@ export default function EndGameModal({
                   className="btn-secondary flex-1"
                   onClick={() => {
                     setShow(false);
-                    setTimeout(() => navigate('/'), 200);
+                    setTimeout(() => navigate(mode === 'daily' ? '/challenge' : '/'), 200);
                   }}
                 >
                   <Home className="w-4 h-4" />
-                  回首页
+                  {mode === 'daily' ? '返回挑战' : '回首页'}
                 </button>
                 <button className="btn-primary flex-1" onClick={onRestart}>
                   <RotateCcw className="w-4 h-4" />
-                  再来一局
+                  {mode === 'daily' ? '再试一次' : '再来一局'}
                 </button>
               </div>
             </div>

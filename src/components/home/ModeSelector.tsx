@@ -210,6 +210,14 @@ export default function ModeSelector() {
 
   const modes = [
     {
+      icon: <Sparkles className="w-6 h-6" />,
+      title: '每日挑战',
+      desc: '每日一词，挑战最高分',
+      tag: '每日更新',
+      gradient: 'from-rose-400 via-pink-500 to-purple-500',
+      onClick: () => navigate('/challenge'),
+    },
+    {
       icon: <Zap className="w-6 h-6" />,
       title: '单人畅玩',
       desc: '快速开始，放飞想象',
@@ -237,7 +245,7 @@ export default function ModeSelector() {
 
   return (
     <section className="w-full px-4 py-6 md:py-12">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
         {modes.map((m, i) => (
           <motion.button
             key={m.title}

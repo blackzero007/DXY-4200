@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, RotateCcw, Pause, Shield, Zap, Flame } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Pause, Shield, Zap, Flame, Sparkles } from 'lucide-react';
 import AnimatedGradientBg from '@/components/shared/AnimatedGradientBg';
 import FloatingParticles from '@/components/shared/FloatingParticles';
 import WordChainDisplay from '@/components/game/WordChainDisplay';
@@ -12,6 +12,7 @@ import { useToast } from '@/components/toast';
 import { useSoloGameStore } from '@/store/useSoloGameStore';
 import { formatDuration } from '@/utils/helpers';
 import { playSuccessSound, playFailSound, playGameEndSound } from '@/utils/soundFeedback';
+import { getStartWordForDate, saveChallengeRecord } from '@/utils/dailyChallenge';
 import type { DifficultyLevel } from '@/types';
 import { DIFFICULTY_CONFIGS } from '@/types';
 
@@ -51,6 +52,8 @@ export default function SoloGamePage() {
 
   const [elapsed, setElapsed] = useState(0);
   const [showEnd, setShowEnd] = useState(false);
+  const isDailyMode = searchParams.get('mode') === 'daily';
+  const savedRecordRef = useRef(false);
 
   useEffect(() => {
     const savedName = (() => {
@@ -62,8 +65,14 @@ export default function SoloGamePage() {
     const difficultyLevel = validLevels.includes(urlDifficulty as DifficultyLevel)
       ? urlDifficulty as DifficultyLevel
       : 'normal';
-    initGame(undefined, savedName, difficultyLevel);
-  }, [initGame, searchParams]);
+    
+    let startWord: string | undefined;
+    if (isDailyMode) {
+      startWord = getStartWordForDate(new Date());
+    }
+    initGame(startWord, savedName, difficultyLevel);
+    savedRecordRef.current = false;
+  }, [initGame, searchParams, isDailyMode]);
 
   useEffect(() => {
     if (status !== 'playing') return;
@@ -77,8 +86,18 @@ export default function SoloGamePage() {
     if (status === 'ended' && chain.length > 1) {
       playGameEndSound();
       setShowEnd(true);
+      
+      if (isDailyMode && !savedRecordRef.current) {
+        savedRecordRef.current = true;
+        saveChallengeRecord(new Date(), {
+          playerName,
+          score,
+          chainLength: chain.length,
+          timestamp: Date.now(),
+        });
+      }
     }
-  }, [status, chain.length]);
+  }, [status, chain.length, isDailyMode, playerName, score]);
 
   const handleSubmit = (word: string) => {
     const result = submitWord(word);
@@ -99,8 +118,14 @@ export default function SoloGamePage() {
 
   const handleRestart = () => {
     setShowEnd(false);
-    restart();
+    if (isDailyMode) {
+      const dailyStartWord = getStartWordForDate(new Date());
+      initGame(dailyStartWord, playerName, difficulty.level);
+    } else {
+      restart();
+    }
     setElapsed(0);
+    savedRecordRef.current = false;
   };
 
   const chainKey = `${chain.length}-${chain[chain.length - 1]?.id || 'init'}`;
@@ -123,7 +148,7 @@ export default function SoloGamePage() {
           className="flex items-center justify-between gap-3 mb-5 md:mb-7"
         >
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(isDailyMode ? '/challenge' : '/')}
             className="shrink-0 w-10 h-10 md:w-11 md:h-11 rounded-2xl glass-panel hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all"
           >
             <ArrowLeft className="w-4.5 h-4.5" />
@@ -135,6 +160,12 @@ export default function SoloGamePage() {
               <div className="min-w-0">
                 <div className="font-medium text-sm md:text-base text-white truncate flex items-center gap-2">
                   {playerName}
+                  {isDailyMode && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-white bg-gradient-to-r from-amber-400 to-orange-500">
+                      <Sparkles className="w-3 h-3" />
+                      每日挑战
+                    </span>
+                  )}
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-white bg-gradient-to-r ${DIFFICULTY_COLORS[difficulty.level]}`}
                   >
@@ -146,7 +177,7 @@ export default function SoloGamePage() {
                   </span>
                 </div>
                 <div className="text-[11px] md:text-xs text-white/55">
-                  单人模式 · 接词 <span className="text-purple-300 font-bold">{score}</span> 个
+                  {isDailyMode ? '每日挑战' : '单人模式'} · 接词 <span className="text-purple-300 font-bold">{score}</span> 个
                 </div>
               </div>
             </div>
@@ -278,10 +309,10 @@ export default function SoloGamePage() {
         chain={chain}
         startWord={startWord}
         startTime={startTime}
-        mode="solo"
+        mode={isDailyMode ? 'daily' : 'solo'}
         onClose={() => {
           setShowEnd(false);
-          navigate('/');
+          navigate(isDailyMode ? '/challenge' : '/');
         }}
         onRestart={handleRestart}
       />
