@@ -264,6 +264,7 @@ export default function SoloGamePage() {
             validationMessage={validationMessage}
             validationValid={lastValidationValid}
             inputKey={chainKey}
+            allowHomophone={difficulty.allowHomophone}
           />
         </motion.div>
       </div>

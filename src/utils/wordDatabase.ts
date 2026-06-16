@@ -112,3 +112,14 @@ export function containsLastChar(word: string, lastChar: string, allowHomophone:
   }
   return false;
 }
+
+export function getHintWords(lastChar: string, count: number = 3, allowHomophone: boolean = true, excludeWords: string[] = []): string[] {
+  if (!lastChar) return [];
+  const matched = START_WORDS.filter((word) => {
+    if (excludeWords.includes(word)) return false;
+    const firstChar = getFirstChar(word);
+    return charMatch(firstChar, lastChar, allowHomophone);
+  });
+  const shuffled = [...matched].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}

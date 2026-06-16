@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, RefreshCw, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
-import { getLastChar } from '@/utils/wordDatabase';
+import { Send, Sparkles, RefreshCw, CheckCircle, XCircle, ArrowRight, Lightbulb } from 'lucide-react';
+import { getLastChar, getHintWords } from '@/utils/wordDatabase';
 
 interface WordInputAreaProps {
   lastWord: string;
@@ -15,6 +15,7 @@ interface WordInputAreaProps {
   canPass?: boolean;
   inputKey?: string | number;
   turnHint?: string;
+  allowHomophone?: boolean;
 }
 
 export default function WordInputArea({
@@ -29,16 +30,26 @@ export default function WordInputArea({
   canPass = true,
   inputKey,
   turnHint,
+  allowHomophone = true,
 }: WordInputAreaProps) {
   const [value, setValue] = useState('');
   const [isShaking, setIsShaking] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
+  const [hintWords, setHintWords] = useState<string[]>([]);
+  const [showHints, setShowHints] = useState(false);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const lastChar = getLastChar(lastWord);
 
   useEffect(() => {
     setValue('');
+    setShowHints(false);
+    setHintWords([]);
+    if (hintTimerRef.current) {
+      clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = null;
+    }
     if (isMyTurn && !disabled && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 200);
     }
@@ -54,6 +65,39 @@ export default function WordInputArea({
       setTimeout(() => setIsPulsing(false), 800);
     }
   }, [validationValid, validationMessage]);
+
+  useEffect(() => {
+    return () => {
+      if (hintTimerRef.current) {
+        clearTimeout(hintTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleShowHints = () => {
+    if (disabled || !isMyTurn) return;
+    const hints = getHintWords(lastChar, 3, allowHomophone);
+    if (hints.length === 0) return;
+    setHintWords(hints);
+    setShowHints(true);
+    if (hintTimerRef.current) {
+      clearTimeout(hintTimerRef.current);
+    }
+    hintTimerRef.current = setTimeout(() => {
+      setShowHints(false);
+      hintTimerRef.current = null;
+    }, 5000);
+  };
+
+  const handleHintClick = (word: string) => {
+    setValue(word);
+    setShowHints(false);
+    if (hintTimerRef.current) {
+      clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = null;
+    }
+    inputRef.current?.focus();
+  };
 
   const handleSubmit = () => {
     const trimmed = value.trim();
@@ -110,6 +154,52 @@ export default function WordInputArea({
           isMyTurn && !disabled ? 'ring-1 ring-purple-400/30' : ''
         }`}
       >
+        <AnimatePresence>
+          {showHints && hintWords.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="absolute -top-14 left-0 right-0 flex justify-center gap-2 md:gap-3 z-20 pointer-events-none"
+            >
+              {hintWords.map((word, index) => (
+                <motion.button
+                  key={`${word}-${index}`}
+                  type="button"
+                  onClick={() => handleHintClick(word)}
+                  initial={{ opacity: 0, y: 20, scale: 0.6 }}
+                  animate={{
+                    opacity: 1,
+                    y: [0, -8, 0],
+                    scale: 1,
+                  }}
+                  exit={{ opacity: 0, y: -20, scale: 0.6 }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 260,
+                    damping: 18,
+                    delay: index * 0.08,
+                    y: {
+                      repeat: Infinity,
+                      duration: 2.2 + index * 0.3,
+                      ease: 'easeInOut',
+                    },
+                  }}
+                  whileHover={{ scale: 1.12, y: -4 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="pointer-events-auto shrink-0 px-3.5 md:px-4 py-2 md:py-2.5 rounded-full font-display text-sm md:text-base text-white bg-gradient-to-br from-amber-400 via-orange-400 to-pink-500 shadow-lg shadow-orange-500/30 border border-white/30 hover:shadow-orange-500/50 transition-shadow"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-white/90" />
+                    {word}
+                  </span>
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex items-center gap-2 md:gap-3">
           <div className="flex-1 relative">
             <input
@@ -131,6 +221,19 @@ export default function WordInputArea({
               </span>
             )}
           </div>
+          {isMyTurn && !disabled && (
+            <motion.button
+              type="button"
+              onClick={handleShowHints}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              className="shrink-0 px-3 md:px-4 py-2.5 md:py-3 rounded-2xl text-amber-300 hover:text-amber-200 border border-amber-400/30 hover:border-amber-400/50 hover:bg-amber-400/10 transition-all text-sm md:text-base flex items-center gap-1.5"
+              title="智能提示"
+            >
+              <Lightbulb className="w-4 h-4 md:w-5 md:h-5" />
+              <span className="hidden sm:inline">提示</span>
+            </motion.button>
+          )}
           {canPass && onPass && isMyTurn && !disabled && (
             <button
               type="button"
