@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Users, Zap, ArrowRight, LogIn, Sparkles } from 'lucide-react';
+import { UserPlus, Users, Zap, ArrowRight, LogIn, Sparkles, ChevronDown } from 'lucide-react';
 import { useToast } from '@/components/toast';
 import { useRoomStore } from '@/store/useRoomStore';
 import DifficultySelector from '@/components/shared/DifficultySelector';
-import type { DifficultyConfig, DifficultyLevel } from '@/types';
+import type { DifficultyConfig, DifficultyLevel, ThemeType } from '@/types';
+import { THEME_CONFIGS, THEME_LIST } from '@/types';
 
 interface CreateModalProps {
   open: boolean;
@@ -201,11 +202,15 @@ export default function ModeSelector() {
   const [soloName, setSoloName] = useState('');
   const [showSolo, setShowSolo] = useState(false);
   const [showDifficulty, setShowDifficulty] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeType | 'random'>('random');
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const storedName = useRoomStore(s => s.localPlayerName);
 
-  const startSoloWithDifficulty = (name: string, difficulty: DifficultyLevel) => {
+  const startSoloWithDifficulty = (name: string, difficulty: DifficultyLevel, theme: ThemeType | 'random') => {
     try { localStorage.setItem('wordchain_player_name', name); } catch { /* ignore */ }
-    navigate(`/game/solo?difficulty=${difficulty}`);
+    const params = new URLSearchParams({ difficulty });
+    if (theme !== 'random') params.set('theme', theme);
+    navigate(`/game/solo?${params.toString()}`);
   };
 
   const modes = [
@@ -349,6 +354,69 @@ export default function ModeSelector() {
                   maxLength={12}
                 />
               </div>
+              <div className="relative">
+                <label className="text-sm text-white/70 mb-1.5 block">词链主题</label>
+                <button
+                  type="button"
+                  onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+                  className="input-base w-full flex items-center justify-between text-left"
+                >
+                  <span className="flex items-center gap-2">
+                    {selectedTheme === 'random' ? (
+                      <>
+                        <span className="text-base">🎲</span>
+                        <span>随机主题</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-base">{THEME_CONFIGS[selectedTheme].emoji}</span>
+                        <span>{THEME_CONFIGS[selectedTheme].label}</span>
+                      </>
+                    )}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${themeDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {themeDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute z-50 top-full mt-1.5 w-full glass-panel rounded-2xl border border-white/15 py-1.5 shadow-xl overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedTheme('random'); setThemeDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                          selectedTheme === 'random' ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-base">🎲</span>
+                        <span>随机主题</span>
+                      </button>
+                      {THEME_LIST.map((theme) => {
+                        const config = THEME_CONFIGS[theme];
+                        return (
+                          <button
+                            key={theme}
+                            type="button"
+                            onClick={() => { setSelectedTheme(theme); setThemeDropdownOpen(false); }}
+                            className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                              selectedTheme === theme ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg bg-gradient-to-br ${config.gradient} text-xs`}>
+                              {config.emoji}
+                            </span>
+                            <span>{config.label}</span>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               <div className="flex gap-3 mt-7">
                 <button className="btn-secondary flex-1" onClick={() => setShowSolo(false)}>
                   取消
@@ -377,7 +445,7 @@ export default function ModeSelector() {
         onClose={() => setShowDifficulty(false)}
         onSelect={(config: DifficultyConfig) => {
           const n = soloName || storedName || '脑洞玩家';
-          startSoloWithDifficulty(n.trim(), config.level);
+          startSoloWithDifficulty(n.trim(), config.level, selectedTheme);
           setShowDifficulty(false);
         }}
       />

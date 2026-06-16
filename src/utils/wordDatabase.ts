@@ -1,3 +1,5 @@
+import type { ThemeType } from '@/types';
+
 export const START_WORDS: string[] = [
   '程序员', '咖啡', '宇宙', '彩虹', '烟花',
   '月亮', '森林', '海洋', '星空', '梦想',
@@ -24,6 +26,45 @@ export const START_WORDS: string[] = [
   '春风化雨', '心想事成', '万事如意', '锦绣前程', '鹏程万里',
   '福星高照', '马到成功', '龙马精神', '一帆风顺', '锦上添花'
 ];
+
+export const THEME_START_WORDS: Record<ThemeType, string[]> = {
+  food: [
+    '火锅', '冰淇淋', '巧克力', '咖啡', '面包店',
+    '糖果店', '咖啡屋', '奶茶', '寿司', '烧烤',
+    '饺子', '面条', '包子', '月饼', '汤圆',
+    '拉面', '披萨', '汉堡', '薯条', '蛋糕',
+    '豆浆', '油条', '麻花', '糖葫芦', '臭豆腐',
+  ],
+  animal: [
+    '猫咪', '熊猫', '独角兽', '蝴蝶', '美人鱼',
+    '皮卡丘', '机器猫', '龙猫', '功夫熊猫', '蜘蛛侠',
+    '蝙蝠侠', '奥特曼', '白鹤', '金鱼', '海豚',
+    '凤凰', '麒麟', '孔雀', '鹦鹉', '企鹅',
+    '长颈鹿', '大象', '老虎', '狮子', '兔子',
+  ],
+  movie: [
+    '银河铁道', '银河护卫队', '星际穿越', '环太平洋',
+    '天空之城', '千与千寻', '哈尔的移动城堡', '龙猫',
+    '哈利波特', '指环王', '加勒比海盗', '阿拉丁',
+    '小王子', '大话西游', '喜剧之王', '霸王别姬',
+    '阿甘正传', '泰坦尼克号', '盗梦空间', '流浪地球',
+    '哪吒', '大圣归来', '疯狂动物城', '寻梦环游记', '飞屋环游记',
+  ],
+  idiom: [
+    '春风化雨', '心想事成', '万事如意', '锦绣前程', '鹏程万里',
+    '福星高照', '马到成功', '龙马精神', '一帆风顺', '锦上添花',
+    '画龙点睛', '守株待兔', '亡羊补牢', '狐假虎威', '井底之蛙',
+    '刻舟求剑', '掩耳盗铃', '叶公好龙', '杯弓蛇影', '对牛弹琴',
+    '望梅止渴', '卧薪尝胆', '破釜沉舟', '三顾茅庐', '纸上谈兵',
+  ],
+  nature: [
+    '森林', '海洋', '星空', '樱花', '极光',
+    '银河', '向日葵', '北极光', '流星雨', '蒲公英',
+    '月亮', '彩虹', '烟花', '闪电', '彩虹桥',
+    '晨曦', '黄昏', '黎明', '翡翠', '琥珀',
+    '瀑布', '沙漠', '冰川', '火山', '雨林',
+  ],
+};
 
 export const HOMOPHONE_MAP: Record<string, string[]> = {
   '员': ['园', '元', '原', '圆', '援', '缘', '猿', '源'],
@@ -83,6 +124,11 @@ export const HOMOPHONE_MAP: Record<string, string[]> = {
 
 export function getRandomStartWord(): string {
   return START_WORDS[Math.floor(Math.random() * START_WORDS.length)];
+}
+
+export function getRandomStartWordByTheme(theme: ThemeType): string {
+  const words = THEME_START_WORDS[theme];
+  return words[Math.floor(Math.random() * words.length)];
 }
 
 export function getLastChar(word: string): string {

@@ -13,8 +13,8 @@ import { useSoloGameStore } from '@/store/useSoloGameStore';
 import { formatDuration } from '@/utils/helpers';
 import { playSuccessSound, playFailSound, playGameEndSound } from '@/utils/soundFeedback';
 import { getStartWordForDate, saveChallengeRecord } from '@/utils/dailyChallenge';
-import type { DifficultyLevel } from '@/types';
-import { DIFFICULTY_CONFIGS } from '@/types';
+import type { DifficultyLevel, ThemeType } from '@/types';
+import { DIFFICULTY_CONFIGS, THEME_CONFIGS } from '@/types';
 
 const DIFFICULTY_ICONS: Record<DifficultyLevel, typeof Shield> = {
   easy: Shield,
@@ -43,6 +43,7 @@ export default function SoloGamePage() {
     validationMessage,
     lastValidationValid,
     difficulty,
+    theme,
     initGame,
     submitWord,
     endGame,
@@ -66,11 +67,15 @@ export default function SoloGamePage() {
       ? urlDifficulty as DifficultyLevel
       : 'normal';
     
+    const validThemes: ThemeType[] = ['food', 'animal', 'movie', 'idiom', 'nature'];
+    const urlTheme = searchParams.get('theme') as ThemeType | null;
+    const themeParam = validThemes.includes(urlTheme as ThemeType) ? urlTheme : null;
+
     let startWord: string | undefined;
     if (isDailyMode) {
       startWord = getStartWordForDate(new Date());
     }
-    initGame(startWord, savedName, difficultyLevel);
+    initGame(startWord, savedName, difficultyLevel, themeParam);
     savedRecordRef.current = false;
   }, [initGame, searchParams, isDailyMode]);
 
@@ -120,7 +125,7 @@ export default function SoloGamePage() {
     setShowEnd(false);
     if (isDailyMode) {
       const dailyStartWord = getStartWordForDate(new Date());
-      initGame(dailyStartWord, playerName, difficulty.level);
+      initGame(dailyStartWord, playerName, difficulty.level, theme);
     } else {
       restart();
     }
@@ -175,6 +180,12 @@ export default function SoloGamePage() {
                     })()}
                     {DIFFICULTY_CONFIGS[difficulty.level].label}
                   </span>
+                  {theme && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-white bg-gradient-to-r ${THEME_CONFIGS[theme].gradient}`}>
+                      {THEME_CONFIGS[theme].emoji}
+                      {THEME_CONFIGS[theme].label}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] md:text-xs text-white/55">
                   {isDailyMode ? '每日挑战' : '单人模式'} · 接词 <span className="text-purple-300 font-bold">{score}</span> 个
@@ -259,6 +270,15 @@ export default function SoloGamePage() {
                   <span className="text-white/40">得分</span>
                   <span className="font-display text-base text-amber-300">{score} 分</span>
                 </div>
+                {theme && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/40">主题</span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-white bg-gradient-to-r ${THEME_CONFIGS[theme].gradient}`}>
+                      {THEME_CONFIGS[theme].emoji}
+                      {THEME_CONFIGS[theme].label}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="glass-panel rounded-3xl p-5 border border-white/10">

@@ -73,6 +73,50 @@ export type GameMode = 'solo' | 'room';
 
 export type DifficultyLevel = 'easy' | 'normal' | 'hard';
 
+export type ThemeType = 'food' | 'animal' | 'movie' | 'idiom' | 'nature';
+
+export interface ThemeConfig {
+  key: ThemeType;
+  label: string;
+  emoji: string;
+  gradient: string;
+}
+
+export const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
+  food: {
+    key: 'food',
+    label: '美食',
+    emoji: '🍜',
+    gradient: 'from-orange-400 to-red-500',
+  },
+  animal: {
+    key: 'animal',
+    label: '动物',
+    emoji: '🐾',
+    gradient: 'from-emerald-400 to-teal-500',
+  },
+  movie: {
+    key: 'movie',
+    label: '电影',
+    emoji: '🎬',
+    gradient: 'from-violet-400 to-purple-500',
+  },
+  idiom: {
+    key: 'idiom',
+    label: '成语',
+    emoji: '📜',
+    gradient: 'from-amber-400 to-yellow-500',
+  },
+  nature: {
+    key: 'nature',
+    label: '自然',
+    emoji: '🌿',
+    gradient: 'from-cyan-400 to-blue-500',
+  },
+};
+
+export const THEME_LIST: ThemeType[] = ['food', 'animal', 'movie', 'idiom', 'nature'];
+
 export interface DifficultyConfig {
   level: DifficultyLevel;
   label: string;

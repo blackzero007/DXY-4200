@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import type { ChainWord, SoloGameState, DifficultyConfig, DifficultyLevel } from '@/types';
+import type { ChainWord, SoloGameState, DifficultyConfig, DifficultyLevel, ThemeType } from '@/types';
 import { DIFFICULTY_CONFIGS } from '@/types';
-import { getRandomStartWord, getLastChar } from '@/utils/wordDatabase';
+import { getRandomStartWord, getRandomStartWordByTheme, getLastChar } from '@/utils/wordDatabase';
 import { generatePlayerId, generateWordId } from '@/utils/helpers';
 import { validateWord } from '@/utils/wordValidator';
 
@@ -11,7 +11,8 @@ interface SoloGameStore extends SoloGameState {
   validationMessage: string;
   lastValidationValid: boolean | null;
   difficulty: DifficultyConfig;
-  initGame: (startWord?: string, playerName?: string, difficulty?: DifficultyLevel | DifficultyConfig) => void;
+  theme: ThemeType | null;
+  initGame: (startWord?: string, playerName?: string, difficulty?: DifficultyLevel | DifficultyConfig, theme?: ThemeType | null) => void;
   submitWord: (word: string) => { success: boolean; message: string };
   endGame: () => void;
   restart: () => void;
@@ -56,9 +57,10 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
   validationMessage: '',
   lastValidationValid: null,
   difficulty: DIFFICULTY_CONFIGS.normal,
+  theme: null,
 
-  initGame: (startWord, playerName, difficulty) => {
-    const word = startWord || getRandomStartWord();
+  initGame: (startWord, playerName, difficulty, theme) => {
+    const word = startWord || (theme ? getRandomStartWordByTheme(theme) : getRandomStartWord());
     const name = playerName || storedPlayerName || '脑洞玩家';
     const diffConfig = resolveDifficulty(difficulty);
     try { localStorage.setItem('wordchain_player_name', name); } catch { /* ignore */ }
@@ -83,6 +85,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
       validationMessage: '',
       lastValidationValid: null,
       difficulty: diffConfig,
+      theme: theme || null,
     });
   },
 
@@ -125,8 +128,8 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
   endGame: () => set({ status: 'ended' }),
 
   restart: () => {
-    const { difficulty } = get();
-    const word = getRandomStartWord();
+    const { difficulty, theme } = get();
+    const word = theme ? getRandomStartWordByTheme(theme) : getRandomStartWord();
     const now = Date.now();
     const firstChain: ChainWord = {
       id: generateWordId(),
