@@ -11,6 +11,7 @@ import WordChainDisplay from '@/components/game/WordChainDisplay';
 import WordInputArea from '@/components/game/WordInputArea';
 import EndGameModal from '@/components/game/EndGameModal';
 import GameReplay from '@/components/game/GameReplay';
+import ChainStatsPanel from '@/components/game/ChainStatsPanel';
 import { useToast } from '@/components/toast';
 import { useRoomStore } from '@/store/useRoomStore';
 import { useBroadcastChannel } from '@/hooks/useBroadcastChannel';
@@ -312,6 +313,8 @@ export default function RoomPage() {
                   </div>
                 </div>
               </div>
+
+              <ChainStatsPanel chain={room.chain} showPlayerContributions />
 
               {isOwner && room.status === 'playing' && (
                 <button

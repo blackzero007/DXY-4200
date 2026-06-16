@@ -8,6 +8,7 @@ import WordChainDisplay from '@/components/game/WordChainDisplay';
 import WordInputArea from '@/components/game/WordInputArea';
 import EndGameModal from '@/components/game/EndGameModal';
 import GameReplay from '@/components/game/GameReplay';
+import ChainStatsPanel from '@/components/game/ChainStatsPanel';
 import Avatar from '@/components/shared/Avatar';
 import OnboardingTour, { useOnboardingStatus } from '@/components/shared/OnboardingTour';
 import { useToast } from '@/components/toast';
@@ -327,6 +328,7 @@ export default function SoloGamePage() {
                 </li>
               </ul>
             </div>
+            <ChainStatsPanel chain={chain} />
           </motion.div>
         </div>
 
