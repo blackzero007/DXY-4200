@@ -13,6 +13,7 @@ export interface ChainStats {
   avgResponseTimeMs: number;
   mostCommonFirstChars: { char: string; count: number }[];
   personalContributionRatio: number;
+  playerSuccessfulWords: number;
 }
 
 export function useChainStats(chain: ChainWord[], playerId?: string): ChainStats {
@@ -30,6 +31,7 @@ export function useChainStats(chain: ChainWord[], playerId?: string): ChainStats
         avgResponseTimeMs: 0,
         mostCommonFirstChars: [],
         personalContributionRatio: 0,
+        playerSuccessfulWords: 0,
       };
     }
 
@@ -111,12 +113,15 @@ export function useChainStats(chain: ChainWord[], playerId?: string): ChainStats
       .slice(0, 3);
 
     let personalContributionRatio = 0;
+    let playerSuccessfulWords = 0;
     if (playerId) {
       const playerEntry = playerContributions.find(p => p.authorId === playerId);
       personalContributionRatio = playerEntry ? playerEntry.ratio : 0;
+      playerSuccessfulWords = playerEntry ? playerEntry.count : 0;
     } else if (playerContributions.length > 0) {
       const nonSystem = playerContributions.find(p => p.authorId !== 'system');
       personalContributionRatio = nonSystem ? nonSystem.ratio : 0;
+      playerSuccessfulWords = nonSystem ? nonSystem.count : 0;
     }
 
     return {
@@ -131,6 +136,7 @@ export function useChainStats(chain: ChainWord[], playerId?: string): ChainStats
       avgResponseTimeMs,
       mostCommonFirstChars,
       personalContributionRatio,
+      playerSuccessfulWords,
     };
   }, [chain, playerId]);
 }

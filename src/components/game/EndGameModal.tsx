@@ -59,9 +59,8 @@ export default function EndGameModal({
   const authors = new Set(chain.filter(c => c.authorId !== 'system').map(c => c.authorId)).size;
   const playerName = chain.find(c => c.authorId !== 'system')?.authorName || '脑洞玩家';
 
-  const successfulWords = chain.filter(c => c.authorId !== 'system').length;
   const successRate = totalAttempts && totalAttempts > 0
-    ? Math.round((successfulWords / totalAttempts) * 100)
+    ? Math.round((stats.playerSuccessfulWords / totalAttempts) * 100)
     : null;
 
   const shareCardData = prepareShareCardData(chain, startWord, score, playerName, mode);
