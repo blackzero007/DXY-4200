@@ -13,6 +13,7 @@ interface TourStep {
   placement: 'top' | 'bottom' | 'left' | 'right';
   action?: () => void;
   buttonText?: string;
+  autoScroll?: boolean;
 }
 
 const TOUR_STEPS: TourStep[] = [
@@ -22,12 +23,14 @@ const TOUR_STEPS: TourStep[] = [
     description: '这是一个创意无限的词语接龙游戏，不限成语，自由脑洞。用字词编织属于你的想象力链条，从「程序员」到「明星大侦探」，一切由你定义！',
     placement: 'bottom',
     buttonText: '开始体验',
+    autoScroll: true,
   },
   {
     targetId: 'onboarding-word-input',
     title: '输入区 - 接词规则',
     description: '在这里输入你的词语，需要以上一个词的最后一个字开头（允许同音字）。点击「提示」可以获取灵感，输入完成后点击「提交」或按回车键确认。',
     placement: 'top',
+    autoScroll: true,
   },
   {
     targetId: 'onboarding-word-chain',
@@ -35,6 +38,7 @@ const TOUR_STEPS: TourStep[] = [
     description: '你接的每一个词都会在这里展示，形成一条绚丽的词链。词越长越有创意，得分也就越高！尽情发挥你的想象力吧～',
     placement: 'bottom',
     buttonText: '我知道了',
+    autoScroll: true,
   },
 ];
 
@@ -109,20 +113,62 @@ export default function OnboardingTour({
       return;
     }
 
+    if (currentStepConfig.autoScroll) {
+      const rect = target.getBoundingClientRect();
+      const viewportH = window.innerHeight;
+      if (rect.top < 40 || rect.bottom > viewportH - 40) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+      }
+    }
+
     const rect = target.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+
+    const visibleTop = Math.max(rect.top, 0);
+    const visibleBottom = Math.min(rect.bottom, viewportH);
+    const visibleLeft = Math.max(rect.left, 0);
+    const visibleRight = Math.min(rect.right, viewportW);
+    const visibleHeight = visibleBottom - visibleTop;
+    const visibleWidth = visibleRight - visibleLeft;
+
+    let highlightTop = rect.top;
+    let highlightLeft = rect.left;
+    let highlightHeight = rect.height;
+    let highlightWidth = rect.width;
+
+    if (visibleHeight <= 0 || visibleWidth <= 0) {
+      highlightTop = Math.max(24, viewportH / 2 - 80);
+      highlightLeft = Math.max(24, viewportW / 2 - 120);
+      highlightHeight = 160;
+      highlightWidth = 240;
+    } else if (visibleHeight < viewportH * 0.3 || visibleWidth < viewportW * 0.3) {
+      if (visibleHeight > visibleWidth) {
+        highlightTop = visibleTop;
+        highlightHeight = Math.max(visibleHeight, 120);
+        highlightLeft = visibleLeft;
+        highlightWidth = Math.max(visibleWidth, 200);
+      } else {
+        highlightLeft = visibleLeft;
+        highlightWidth = Math.max(visibleWidth, 200);
+        highlightTop = visibleTop;
+        highlightHeight = Math.max(visibleHeight, 120);
+      }
+    }
+
     const padding = 8;
     const paddedRect = new DOMRect(
-      rect.left - padding,
-      rect.top - padding,
-      rect.width + padding * 2,
-      rect.height + padding * 2
+      highlightLeft - padding,
+      highlightTop - padding,
+      highlightWidth + padding * 2,
+      highlightHeight + padding * 2
     );
     setTargetRect(paddedRect);
 
-    const tooltipWidth = Math.min(360, window.innerWidth - 48);
-    const tooltipHeight = 240;
+    const tooltipWidth = Math.min(360, viewportW - 48);
+    const tooltipHeight = 260;
     const gap = 16;
-    const placement = currentStepConfig.placement;
+    const margin = 24;
 
     let top = 0;
     let left = 0;
@@ -132,47 +178,78 @@ export default function OnboardingTour({
     const centerX = paddedRect.left + paddedRect.width / 2;
     const centerY = paddedRect.top + paddedRect.height / 2;
 
-    switch (placement) {
-      case 'bottom':
-        top = paddedRect.bottom + gap;
-        left = Math.max(24, Math.min(centerX - tooltipWidth / 2, window.innerWidth - tooltipWidth - 24));
+    const spaceTop = paddedRect.top - margin;
+    const spaceBottom = viewportH - paddedRect.bottom - margin;
+    const spaceLeft = paddedRect.left - margin;
+    const spaceRight = viewportW - paddedRect.right - margin;
+
+    const canBottom = spaceBottom >= tooltipHeight + gap;
+    const canTop = spaceTop >= tooltipHeight + gap;
+    const canRight = spaceRight >= tooltipWidth + gap;
+    const canLeft = spaceLeft >= tooltipWidth + gap;
+
+    let finalPlacement = currentStepConfig.placement;
+    if (!canBottom && !canTop && !canRight && !canLeft) {
+      if (Math.max(spaceTop, spaceBottom) >= Math.max(spaceLeft, spaceRight)) {
+        finalPlacement = spaceTop >= spaceBottom ? 'top' : 'bottom';
+      } else {
+        finalPlacement = spaceLeft >= spaceRight ? 'left' : 'right';
+      }
+    } else {
+      const pref = currentStepConfig.placement;
+      const isOk = (p: string) =>
+        (p === 'bottom' && canBottom) ||
+        (p === 'top' && canTop) ||
+        (p === 'right' && canRight) ||
+        (p === 'left' && canLeft);
+      if (!isOk(pref)) {
+        const order = ['bottom', 'top', 'right', 'left'] as const;
+        for (const p of order) {
+          if (isOk(p)) {
+            finalPlacement = p;
+            break;
+          }
+        }
+      }
+    }
+
+    switch (finalPlacement) {
+      case 'bottom': {
+        const rawTop = paddedRect.bottom + gap;
+        top = Math.min(rawTop, viewportH - tooltipHeight - margin);
+        left = Math.max(margin, Math.min(centerX - tooltipWidth / 2, viewportW - tooltipWidth - margin));
+        const anchorX = Math.max(paddedRect.left, Math.min(centerX, paddedRect.right));
         arrowTop = -8;
-        arrowLeft = centerX - left;
-        if (top + tooltipHeight > window.innerHeight) {
-          top = paddedRect.top - tooltipHeight - gap;
-          arrowTop = tooltipHeight;
-        }
+        arrowLeft = Math.max(16, Math.min(anchorX - left, tooltipWidth - 16));
         break;
-      case 'top':
-        top = paddedRect.top - tooltipHeight - gap;
-        left = Math.max(24, Math.min(centerX - tooltipWidth / 2, window.innerWidth - tooltipWidth - 24));
+      }
+      case 'top': {
+        const rawTop = paddedRect.top - gap - tooltipHeight;
+        top = Math.max(margin, rawTop);
+        left = Math.max(margin, Math.min(centerX - tooltipWidth / 2, viewportW - tooltipWidth - margin));
+        const anchorX = Math.max(paddedRect.left, Math.min(centerX, paddedRect.right));
         arrowTop = tooltipHeight;
-        arrowLeft = centerX - left;
-        if (top < 24) {
-          top = paddedRect.bottom + gap;
-          arrowTop = -8;
-        }
+        arrowLeft = Math.max(16, Math.min(anchorX - left, tooltipWidth - 16));
         break;
-      case 'right':
-        top = Math.max(24, Math.min(centerY - tooltipHeight / 2, window.innerHeight - tooltipHeight - 24));
-        left = paddedRect.right + gap;
+      }
+      case 'right': {
+        const rawLeft = paddedRect.right + gap;
+        left = Math.min(rawLeft, viewportW - tooltipWidth - margin);
+        top = Math.max(margin, Math.min(centerY - tooltipHeight / 2, viewportH - tooltipHeight - margin));
+        const anchorY = Math.max(paddedRect.top, Math.min(centerY, paddedRect.bottom));
         arrowLeft = -8;
-        arrowTop = centerY - top;
-        if (left + tooltipWidth > window.innerWidth) {
-          left = paddedRect.left - tooltipWidth - gap;
-          arrowLeft = tooltipWidth;
-        }
+        arrowTop = Math.max(16, Math.min(anchorY - top, tooltipHeight - 16));
         break;
-      case 'left':
-        top = Math.max(24, Math.min(centerY - tooltipHeight / 2, window.innerHeight - tooltipHeight - 24));
-        left = paddedRect.left - tooltipWidth - gap;
+      }
+      case 'left': {
+        const rawLeft = paddedRect.left - gap - tooltipWidth;
+        left = Math.max(margin, rawLeft);
+        top = Math.max(margin, Math.min(centerY - tooltipHeight / 2, viewportH - tooltipHeight - margin));
+        const anchorY = Math.max(paddedRect.top, Math.min(centerY, paddedRect.bottom));
         arrowLeft = tooltipWidth;
-        arrowTop = centerY - top;
-        if (left < 24) {
-          left = paddedRect.right + gap;
-          arrowLeft = -8;
-        }
+        arrowTop = Math.max(16, Math.min(anchorY - top, tooltipHeight - 16));
         break;
+      }
     }
 
     setTooltipPosition({ top, left });

@@ -14,27 +14,29 @@ const DEMO_COLORS = [
 
 export default function HeroSection() {
   return (
-    <section id="onboarding-hero-section" className="relative w-full px-4 pt-14 pb-8 md:pt-20 md:pb-12 text-center">
-      <motion.div
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel text-xs md:text-sm text-white/75 mb-6 md:mb-10"
-      >
-        <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-300" />
-        <span>不限成语！自由脑洞，尽情发挥你的创意 ✨</span>
-      </motion.div>
+    <section className="relative w-full px-4 pt-14 pb-8 md:pt-20 md:pb-12 text-center">
+      <div id="onboarding-hero-section">
+        <motion.div
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel text-xs md:text-sm text-white/75 mb-6 md:mb-10"
+        >
+          <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-300" />
+          <span>不限成语！自由脑洞，尽情发挥你的创意 ✨</span>
+        </motion.div>
 
-      <motion.h1
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-        className="font-display text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-wide mb-5 md:mb-7"
-      >
-        <span className="text-gradient">脑洞大开</span>
-        <br className="md:hidden" />
-        <span className="text-white/95">花式接词</span>
-      </motion.h1>
+        <motion.h1
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="font-display text-5xl md:text-7xl lg:text-8xl leading-[1.05] tracking-wide mb-5 md:mb-7"
+        >
+          <span className="text-gradient">脑洞大开</span>
+          <br className="md:hidden" />
+          <span className="text-white/95">花式接词</span>
+        </motion.h1>
+      </div>
 
       <motion.p
         initial={{ opacity: 0, y: 15 }}
