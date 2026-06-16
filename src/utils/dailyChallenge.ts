@@ -7,6 +7,11 @@ export interface ChallengeRecord {
   timestamp: number;
 }
 
+interface StoredDailyChallenge {
+  startWord: string;
+  records: ChallengeRecord[];
+}
+
 export interface DailyChallengeData {
   date: string;
   startWord: string;
@@ -47,14 +52,25 @@ export function getStorageKey(date: Date): string {
 
 export function getDailyChallengeData(date: Date): DailyChallengeData {
   const dateStr = getDateString(date);
-  const startWord = getStartWordForDate(date);
   const storageKey = getStorageKey(date);
 
+  let startWord = getStartWordForDate(date);
   let records: ChallengeRecord[] = [];
+
   try {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
-      records = JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        records = parsed;
+      } else if (parsed && typeof parsed === 'object') {
+        if (parsed.startWord) {
+          startWord = parsed.startWord;
+        }
+        if (Array.isArray(parsed.records)) {
+          records = parsed.records;
+        }
+      }
     }
   } catch {
     records = [];
@@ -94,8 +110,13 @@ export function saveChallengeRecord(date: Date, record: ChallengeRecord): void {
     data.records.push(record);
   }
 
+  const storedData: StoredDailyChallenge = {
+    startWord: data.startWord,
+    records: data.records,
+  };
+
   try {
-    localStorage.setItem(storageKey, JSON.stringify(data.records));
+    localStorage.setItem(storageKey, JSON.stringify(storedData));
   } catch {
     /* ignore */
   }
