@@ -10,6 +10,7 @@ import ReactionBar from '@/components/room/ReactionBar';
 import WordChainDisplay from '@/components/game/WordChainDisplay';
 import WordInputArea from '@/components/game/WordInputArea';
 import EndGameModal from '@/components/game/EndGameModal';
+import GameReplay from '@/components/game/GameReplay';
 import { useToast } from '@/components/toast';
 import { useRoomStore } from '@/store/useRoomStore';
 import { useBroadcastChannel } from '@/hooks/useBroadcastChannel';
@@ -42,6 +43,7 @@ export default function RoomPage() {
   const [nickname, setNickname] = useState('');
   const [asWatcher, setAsWatcher] = useState(false);
   const [showEnd, setShowEnd] = useState(false);
+  const [showReplay, setShowReplay] = useState(false);
   const initRef = useRef(false);
 
   const { broadcast } = useBroadcastChannel(roomId, true);
@@ -408,7 +410,19 @@ export default function RoomPage() {
             handleStartGame();
           }
         }}
+        onReplay={() => setShowReplay(true)}
       />
+
+      {showReplay && (
+        <GameReplay
+          chain={room?.chain || []}
+          startWord={room?.startWord || ''}
+          onClose={() => {
+            setShowReplay(false);
+            setShowEnd(true);
+          }}
+        />
+      )}
     </motion.div>
   );
 }

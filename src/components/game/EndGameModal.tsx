@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Star, Clock, Sparkles, RotateCcw, Home, Medal, Zap, Share2, Download, Copy, X } from 'lucide-react';
+import { Trophy, Star, Clock, Sparkles, RotateCcw, Home, Medal, Zap, Share2, Download, Copy, X, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ChainWord, Player } from '@/types';
 import { formatDuration } from '@/utils/helpers';
@@ -17,6 +17,7 @@ interface EndGameModalProps {
   players?: Player[];
   onClose: () => void;
   onRestart: () => void;
+  onReplay?: () => void;
 }
 
 export default function EndGameModal({
@@ -28,6 +29,7 @@ export default function EndGameModal({
   players = [],
   onClose,
   onRestart,
+  onReplay,
 }: EndGameModalProps) {
   const navigate = useNavigate();
   const toast = useToast();
@@ -215,6 +217,19 @@ export default function EndGameModal({
                   {mode === 'daily' ? '再试一次' : '再来一局'}
                 </button>
               </div>
+
+              {onReplay && chain.length > 1 && (
+                <button
+                  className="w-full btn-secondary mb-3"
+                  onClick={() => {
+                    setShow(false);
+                    onReplay();
+                  }}
+                >
+                  <Play className="w-4 h-4" />
+                  回放
+                </button>
+              )}
 
               <button
                 className="w-full btn-secondary"

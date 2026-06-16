@@ -7,6 +7,7 @@ import FloatingParticles from '@/components/shared/FloatingParticles';
 import WordChainDisplay from '@/components/game/WordChainDisplay';
 import WordInputArea from '@/components/game/WordInputArea';
 import EndGameModal from '@/components/game/EndGameModal';
+import GameReplay from '@/components/game/GameReplay';
 import Avatar from '@/components/shared/Avatar';
 import OnboardingTour, { useOnboardingStatus } from '@/components/shared/OnboardingTour';
 import { useToast } from '@/components/toast';
@@ -56,6 +57,7 @@ export default function SoloGamePage() {
   const [elapsed, setElapsed] = useState(0);
   const [showEnd, setShowEnd] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [showReplay, setShowReplay] = useState(false);
   const isDailyMode = searchParams.get('mode') === 'daily';
   const savedRecordRef = useRef(false);
 
@@ -356,7 +358,19 @@ export default function SoloGamePage() {
           navigate(isDailyMode ? '/challenge' : '/');
         }}
         onRestart={handleRestart}
+        onReplay={() => setShowReplay(true)}
       />
+
+      {showReplay && (
+        <GameReplay
+          chain={chain}
+          startWord={startWord}
+          onClose={() => {
+            setShowReplay(false);
+            setShowEnd(true);
+          }}
+        />
+      )}
 
       {showTour && (currentStep === 1 || currentStep === 2) && (
         <OnboardingTour
