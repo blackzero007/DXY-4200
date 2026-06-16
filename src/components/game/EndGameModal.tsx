@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Star, Clock, Sparkles, RotateCcw, Home, Medal, Zap, Share2, Download, Copy, X, Play } from 'lucide-react';
+import { Trophy, Star, Clock, Sparkles, RotateCcw, Home, Medal, Zap, Share2, Download, Copy, X, Play, ChevronDown, Flame, Timer, Hash, Target, User, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ChainWord, Player } from '@/types';
 import { formatDuration } from '@/utils/helpers';
 import ShareCard, { prepareShareCardData } from './ShareCard';
 import { downloadCardAsImage, copyCardImageToClipboard, copyShareTextToClipboard } from '@/utils/shareUtils';
 import { useToast } from '@/components/toast/useToast';
+import { useChainStats } from '@/hooks/useChainStats';
 
 interface EndGameModalProps {
   open: boolean;
@@ -15,6 +16,8 @@ interface EndGameModalProps {
   startTime: number;
   mode: 'solo' | 'room' | 'daily';
   players?: Player[];
+  totalAttempts?: number;
+  playerId?: string;
   onClose: () => void;
   onRestart: () => void;
   onReplay?: () => void;
@@ -27,6 +30,8 @@ export default function EndGameModal({
   startTime,
   mode,
   players = [],
+  totalAttempts,
+  playerId,
   onClose,
   onRestart,
   onReplay,
@@ -36,7 +41,9 @@ export default function EndGameModal({
   const [show, setShow] = useState(open);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+  const [showDetailedStats, setShowDetailedStats] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
+  const stats = useChainStats(chain, playerId);
 
   useEffect(() => {
     if (open) setShow(true);
@@ -51,6 +58,11 @@ export default function EndGameModal({
   const topPlayers = [...players].sort((a, b) => b.score - a.score).slice(0, 3);
   const authors = new Set(chain.filter(c => c.authorId !== 'system').map(c => c.authorId)).size;
   const playerName = chain.find(c => c.authorId !== 'system')?.authorName || '脑洞玩家';
+
+  const successfulWords = chain.filter(c => c.authorId !== 'system').length;
+  const successRate = totalAttempts && totalAttempts > 0
+    ? Math.round((successfulWords / totalAttempts) * 100)
+    : null;
 
   const shareCardData = prepareShareCardData(chain, startWord, score, playerName, mode);
 
@@ -163,7 +175,7 @@ export default function EndGameModal({
                 <Stat icon={<Medal className="w-4 h-4" />} label="参与" value={mode === 'solo' ? '1人' : `${authors}人`} />
               </div>
 
-              <div className="glass-panel rounded-2xl p-4 mb-6">
+              <div className="glass-panel rounded-2xl p-4 mb-4">
                 <div className="flex items-center gap-2 mb-3 text-white/70 text-sm">
                   <Star className="w-4 h-4 text-amber-300" />
                   <span>{mode === 'solo' ? '你的战绩' : '玩家榜'}</span>
@@ -199,6 +211,94 @@ export default function EndGameModal({
                 ) : (
                   <div className="text-white/50 text-sm py-2 text-center">暂无数据</div>
                 )}
+              </div>
+
+              <div className="glass-panel rounded-2xl overflow-hidden border border-white/10 mb-6">
+                <button
+                  onClick={() => setShowDetailedStats(s => !s)}
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-white/70 text-sm">
+                    <BarChart3 className="w-4 h-4 text-purple-300" />
+                    <span>详细统计</span>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: showDetailedStats ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="w-4 h-4 text-white/50" />
+                  </motion.div>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {showDetailedStats && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 space-y-2.5 text-sm">
+                        <div className="flex justify-between items-center py-1.5">
+                          <span className="text-white/50 flex items-center gap-1.5">
+                            <Flame className="w-3.5 h-3.5 text-orange-400" />
+                            最长连续接词
+                          </span>
+                          <span className="font-display text-base text-orange-300">
+                            {stats.longestStreak > 0 ? `${stats.longestStreak} 次` : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center py-1.5">
+                          <span className="text-white/50 flex items-center gap-1.5">
+                            <Timer className="w-3.5 h-3.5 text-cyan-400" />
+                            平均响应时间
+                          </span>
+                          <span className="font-display text-base text-cyan-300">
+                            {stats.avgResponseTimeMs > 0
+                              ? stats.avgResponseTimeMs >= 1000
+                                ? `${(stats.avgResponseTimeMs / 1000).toFixed(1)} 秒`
+                                : `${stats.avgResponseTimeMs} 毫秒`
+                              : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center py-1.5">
+                          <span className="text-white/50 flex items-center gap-1.5">
+                            <Hash className="w-3.5 h-3.5 text-emerald-400" />
+                            最常用首字
+                          </span>
+                          <span className="font-display text-base text-emerald-300">
+                            {stats.mostCommonFirstChars.length > 0
+                              ? stats.mostCommonFirstChars.map(c => `${c.char}(${c.count})`).join(' · ')
+                              : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center py-1.5">
+                          <span className="text-white/50 flex items-center gap-1.5">
+                            <Target className="w-3.5 h-3.5 text-rose-400" />
+                            接词成功率
+                          </span>
+                          <span className="font-display text-base text-rose-300">
+                            {successRate !== null ? `${successRate}%` : '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center py-1.5">
+                          <span className="text-white/50 flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-violet-400" />
+                            个人贡献占比
+                          </span>
+                          <span className="font-display text-base text-violet-300">
+                            {stats.personalContributionRatio > 0 ? `${stats.personalContributionRatio}%` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="flex gap-3 mb-3">

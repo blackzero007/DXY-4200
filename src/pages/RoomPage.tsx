@@ -29,6 +29,7 @@ export default function RoomPage() {
     validationMessage,
     lastValidationValid,
     lastReaction,
+    totalAttempts,
     syncRoomFromStorage,
     joinRoom,
     startGame,
@@ -459,6 +460,8 @@ export default function RoomPage() {
         startTime={room?.createdAt || Date.now()}
         mode="room"
         players={room?.players || []}
+        totalAttempts={totalAttempts}
+        playerId={localPlayerId}
         onClose={() => {
           setShowEnd(false);
           navigate('/');

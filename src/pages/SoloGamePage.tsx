@@ -47,6 +47,8 @@ export default function SoloGamePage() {
     lastValidationValid,
     difficulty,
     theme,
+    playerId,
+    totalAttempts,
     initGame,
     submitWord,
     endGame,
@@ -355,6 +357,8 @@ export default function SoloGamePage() {
         startWord={startWord}
         startTime={startTime}
         mode={isDailyMode ? 'daily' : 'solo'}
+        totalAttempts={totalAttempts}
+        playerId={playerId}
         onClose={() => {
           setShowEnd(false);
           navigate(isDailyMode ? '/challenge' : '/');

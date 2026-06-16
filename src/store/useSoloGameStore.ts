@@ -12,6 +12,7 @@ interface SoloGameStore extends SoloGameState {
   lastValidationValid: boolean | null;
   difficulty: DifficultyConfig;
   theme: ThemeType | null;
+  totalAttempts: number;
   initGame: (startWord?: string, playerName?: string, difficulty?: DifficultyLevel | DifficultyConfig, theme?: ThemeType | null) => void;
   submitWord: (word: string) => { success: boolean; message: string };
   endGame: () => void;
@@ -58,6 +59,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
   lastValidationValid: null,
   difficulty: DIFFICULTY_CONFIGS.normal,
   theme: null,
+  totalAttempts: 0,
 
   initGame: (startWord, playerName, difficulty, theme) => {
     const word = startWord || (theme ? getRandomStartWordByTheme(theme) : getRandomStartWord());
@@ -86,6 +88,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
       lastValidationValid: null,
       difficulty: diffConfig,
       theme: theme || null,
+      totalAttempts: 0,
     });
   },
 
@@ -94,6 +97,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
     if (state.status !== 'playing') {
       return { success: false, message: '游戏已结束' };
     }
+    const newAttempts = state.totalAttempts + 1;
     const { minLength, allowHomophone, containsMode } = state.difficulty;
     const result = validateWord(word, state.currentWord, state.chain, {
       minLength,
@@ -101,7 +105,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
       containsMode,
     });
     if (!result.valid) {
-      set({ validationMessage: result.message, lastValidationValid: false });
+      set({ validationMessage: result.message, lastValidationValid: false, totalAttempts: newAttempts });
       return { success: false, message: result.message };
     }
     const trimmed = word.trim();
@@ -121,6 +125,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
       score: state.score + 1,
       validationMessage: result.message,
       lastValidationValid: true,
+      totalAttempts: newAttempts,
     });
     return { success: true, message: result.message };
   },
@@ -150,6 +155,7 @@ export const useSoloGameStore = create<SoloGameStore>((set, get) => ({
       validationMessage: '',
       lastValidationValid: null,
       difficulty,
+      totalAttempts: 0,
     });
   },
 

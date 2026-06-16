@@ -11,6 +11,7 @@ interface RoomStore {
   validationMessage: string;
   lastValidationValid: boolean | null;
   lastReaction: { emoji: string; fromName: string; id: number } | null;
+  totalAttempts: number;
   setRoom: (room: Room | null) => void;
   createRoom: (ownerName: string, roomName?: string) => { roomId: string; playerId: string };
   joinRoom: (roomId: string, playerName: string, asWatcher?: boolean) => { playerId: string; success: boolean; message: string };
@@ -71,6 +72,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   validationMessage: '',
   lastValidationValid: null,
   lastReaction: null,
+  totalAttempts: 0,
 
   setRoom: (room) => {
     set({ room });
@@ -176,7 +178,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       turnStartTime: now,
       players: room.players.map(p => ({ ...p, score: 0 })),
     };
-    set({ room: newRoom, validationMessage: '', lastValidationValid: null });
+    set({ room: newRoom, validationMessage: '', lastValidationValid: null, totalAttempts: 0 });
     persistRoom(newRoom);
     return true;
   },
@@ -189,9 +191,10 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     if (room.currentTurnPlayerId !== playerId) {
       return { success: false, message: '还没轮到你哦' };
     }
+    const newAttempts = state.totalAttempts + 1;
     const result = validateWord(word, room.currentWord, room.chain);
     if (!result.valid) {
-      set({ validationMessage: result.message, lastValidationValid: false });
+      set({ validationMessage: result.message, lastValidationValid: false, totalAttempts: newAttempts });
       return { success: false, message: result.message };
     }
     const trimmed = word.trim();
@@ -222,7 +225,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       passCount: 0,
       turnStartTime: Date.now(),
     };
-    set({ room: newRoom, validationMessage: result.message, lastValidationValid: true });
+    set({ room: newRoom, validationMessage: result.message, lastValidationValid: true, totalAttempts: newAttempts });
     persistRoom(newRoom);
     return { success: true, message: result.message };
   },
