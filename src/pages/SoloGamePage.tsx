@@ -8,6 +8,7 @@ import WordChainDisplay from '@/components/game/WordChainDisplay';
 import WordInputArea from '@/components/game/WordInputArea';
 import EndGameModal from '@/components/game/EndGameModal';
 import Avatar from '@/components/shared/Avatar';
+import { useToast } from '@/components/toast';
 import { useSoloGameStore } from '@/store/useSoloGameStore';
 import { formatDuration } from '@/utils/helpers';
 import { playSuccessSound, playFailSound, playGameEndSound } from '@/utils/soundFeedback';
@@ -29,6 +30,7 @@ const DIFFICULTY_COLORS: Record<DifficultyLevel, string> = {
 export default function SoloGamePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const toast = useToast();
   const {
     chain,
     currentWord,
@@ -82,9 +84,11 @@ export default function SoloGamePage() {
     const result = submitWord(word);
     if (result.success) {
       playSuccessSound();
+      toast.success(result.message);
       setTimeout(() => clearValidation(), 1600);
     } else {
       playFailSound();
+      toast.error(result.message);
     }
     return result;
   };

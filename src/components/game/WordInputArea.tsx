@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, RefreshCw, CheckCircle, XCircle, ArrowRight, Lightbulb } from 'lucide-react';
+import { Send, Sparkles, RefreshCw, Lightbulb } from 'lucide-react';
 import { getLastChar, getHintWords } from '@/utils/wordDatabase';
 
 interface WordInputAreaProps {
@@ -107,8 +107,6 @@ export default function WordInputArea({
       setValue('');
     }
   };
-
-  const showValidation = validationMessage && validationValid !== null;
 
   return (
     <div className="w-full">
@@ -258,35 +256,6 @@ export default function WordInputArea({
             <Send className="w-4 h-4 md:w-5 md:h-5" />
           </motion.button>
         </div>
-
-        <AnimatePresence>
-          {showValidation && (
-            <motion.div
-              initial={{ opacity: 0, y: -8, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -8, height: 0 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className={`flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-2xl mt-2 ${
-                validationValid
-                  ? 'bg-emerald-500/10 border border-emerald-400/25'
-                  : 'bg-rose-500/10 border border-rose-400/25'
-              }`}
-            >
-              {validationValid ? (
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 shrink-0" />
-              ) : (
-                <XCircle className="w-4 h-4 md:w-5 md:h-5 text-rose-400 shrink-0" />
-              )}
-              <span
-                className={`text-sm md:text-base font-medium ${
-                  validationValid ? 'text-emerald-300' : 'text-rose-300'
-                }`}
-              >
-                {validationMessage}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
     </div>
   );

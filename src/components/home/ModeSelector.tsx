@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Users, Zap, ArrowRight, LogIn, Sparkles } from 'lucide-react';
+import { useToast } from '@/components/toast';
 import { useRoomStore } from '@/store/useRoomStore';
 import DifficultySelector from '@/components/shared/DifficultySelector';
 import type { DifficultyConfig, DifficultyLevel } from '@/types';
@@ -193,6 +194,7 @@ function JoinModal({ open, onClose, onSubmit }: JoinModalProps) {
 export default function ModeSelector() {
   const navigate = useNavigate();
   const { createRoom, joinRoom } = useRoomStore();
+  const toast = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
 
@@ -296,7 +298,7 @@ export default function ModeSelector() {
           if (success) {
             navigate(`/room/${code}`);
           } else {
-            alert(message);
+            toast.error(message);
           }
         }}
       />

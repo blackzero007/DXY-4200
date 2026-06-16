@@ -10,6 +10,7 @@ import ReactionBar from '@/components/room/ReactionBar';
 import WordChainDisplay from '@/components/game/WordChainDisplay';
 import WordInputArea from '@/components/game/WordInputArea';
 import EndGameModal from '@/components/game/EndGameModal';
+import { useToast } from '@/components/toast';
 import { useRoomStore } from '@/store/useRoomStore';
 import { useBroadcastChannel } from '@/hooks/useBroadcastChannel';
 import { copyToClipboard } from '@/utils/helpers';
@@ -18,6 +19,7 @@ import { playSuccessSound, playFailSound, playGameEndSound } from '@/utils/sound
 export default function RoomPage() {
   const { roomId = '' } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const {
     room,
@@ -83,7 +85,7 @@ export default function RoomPage() {
     if (!name) return;
     const { success, message } = joinRoom(roomId, name, asWatcher);
     if (!success) {
-      alert(message);
+      toast.error(message);
       navigate('/');
       return;
     }
@@ -107,10 +109,12 @@ export default function RoomPage() {
     const result = submitWord(localPlayerId, word);
     if (result.success) {
       playSuccessSound();
+      toast.success(result.message);
       setTimeout(() => clearValidation(), 1600);
       setTimeout(() => broadcast('add-word'), 30);
     } else {
       playFailSound();
+      toast.error(result.message);
     }
     return result;
   };
@@ -141,7 +145,9 @@ export default function RoomPage() {
       try {
         await navigator.share({ title: '脑洞接词邀请', text });
         return;
-      } catch {}
+      } catch {
+        // 用户取消分享，回退到复制
+      }
     }
     await copyToClipboard(text);
   };
