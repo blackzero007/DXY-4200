@@ -35,7 +35,7 @@ export default function WordChainDisplay({ chain, className = '' }: WordChainDis
   const latestIndex = chain.length - 1;
 
   return (
-    <div className={`relative ${className}`}>
+    <div id="onboarding-word-chain" className={`relative ${className}`}>
       <div className="absolute inset-x-0 top-0 h-12 md:h-16 bg-gradient-to-b from-ink-900/90 to-transparent pointer-events-none z-20 rounded-t-3xl" />
       <div className="absolute inset-x-0 bottom-0 h-12 md:h-16 bg-gradient-to-t from-ink-900/90 to-transparent pointer-events-none z-20 rounded-b-3xl" />
       <div className={`absolute inset-y-0 left-0 w-16 md:w-20 bg-gradient-to-r from-ink-900/90 to-transparent pointer-events-none z-20 rounded-l-3xl ${isMobile ? 'hidden' : ''}`} />

@@ -1,21 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedGradientBg from '@/components/shared/AnimatedGradientBg';
 import FloatingParticles from '@/components/shared/FloatingParticles';
 import HeroSection from '@/components/home/HeroSection';
 import ModeSelector from '@/components/home/ModeSelector';
 import HowToPlay from '@/components/home/HowToPlay';
+import OnboardingTour, { useOnboardingStatus } from '@/components/shared/OnboardingTour';
 import { useSoloGameStore } from '@/store/useSoloGameStore';
 import { useRoomStore } from '@/store/useRoomStore';
 
 export default function HomePage() {
   const cleanupSolo = useSoloGameStore(s => s.endGame);
   const cleanupRoom = useRoomStore(s => s.cleanupRoom);
+  const { shouldShow, currentStep, setCurrentStep, markCompleted } = useOnboardingStatus();
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     cleanupSolo();
     cleanupRoom();
   }, [cleanupSolo, cleanupRoom]);
+
+  useEffect(() => {
+    if (shouldShow && currentStep === 0) {
+      setTimeout(() => setShowTour(true), 800);
+    }
+  }, [shouldShow, currentStep]);
+
+  const handleClose = () => {
+    setShowTour(false);
+    markCompleted();
+  };
+
+  const handleStepChange = (step: number) => {
+    setCurrentStep(step);
+  };
 
   return (
     <motion.div
@@ -39,6 +57,15 @@ export default function HomePage() {
           </p>
         </footer>
       </div>
+
+      {showTour && currentStep === 0 && (
+        <OnboardingTour
+          isOpen={showTour}
+          initialStep={currentStep}
+          onClose={handleClose}
+          onStepChange={handleStepChange}
+        />
+      )}
     </motion.div>
   );
 }

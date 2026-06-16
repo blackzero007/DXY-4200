@@ -109,7 +109,7 @@ export default function WordInputArea({
   };
 
   return (
-    <div className="w-full">
+    <div id="onboarding-word-input" className="w-full">
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
           <span className="text-xs md:text-sm text-white/50">

@@ -14,7 +14,7 @@ const DEMO_COLORS = [
 
 export default function HeroSection() {
   return (
-    <section className="relative w-full px-4 pt-14 pb-8 md:pt-20 md:pb-12 text-center">
+    <section id="onboarding-hero-section" className="relative w-full px-4 pt-14 pb-8 md:pt-20 md:pb-12 text-center">
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}

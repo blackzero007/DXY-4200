@@ -8,6 +8,7 @@ import WordChainDisplay from '@/components/game/WordChainDisplay';
 import WordInputArea from '@/components/game/WordInputArea';
 import EndGameModal from '@/components/game/EndGameModal';
 import Avatar from '@/components/shared/Avatar';
+import OnboardingTour, { useOnboardingStatus } from '@/components/shared/OnboardingTour';
 import { useToast } from '@/components/toast';
 import { useSoloGameStore } from '@/store/useSoloGameStore';
 import { formatDuration } from '@/utils/helpers';
@@ -50,9 +51,11 @@ export default function SoloGamePage() {
     restart,
     clearValidation,
   } = useSoloGameStore();
+  const { shouldShow, currentStep, setCurrentStep, markCompleted } = useOnboardingStatus();
 
   const [elapsed, setElapsed] = useState(0);
   const [showEnd, setShowEnd] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const isDailyMode = searchParams.get('mode') === 'daily';
   const savedRecordRef = useRef(false);
 
@@ -103,6 +106,24 @@ export default function SoloGamePage() {
       }
     }
   }, [status, chain.length, isDailyMode, playerName, score]);
+
+  useEffect(() => {
+    if (shouldShow && (currentStep === 1 || currentStep === 2)) {
+      const timer = setTimeout(() => {
+        setShowTour(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldShow, currentStep]);
+
+  const handleTourClose = () => {
+    setShowTour(false);
+    markCompleted();
+  };
+
+  const handleTourStepChange = (step: number) => {
+    setCurrentStep(step);
+  };
 
   const handleSubmit = (word: string) => {
     const result = submitWord(word);
@@ -336,6 +357,15 @@ export default function SoloGamePage() {
         }}
         onRestart={handleRestart}
       />
+
+      {showTour && (currentStep === 1 || currentStep === 2) && (
+        <OnboardingTour
+          isOpen={showTour}
+          initialStep={currentStep}
+          onClose={handleTourClose}
+          onStepChange={handleTourStepChange}
+        />
+      )}
     </motion.div>
   );
 }
