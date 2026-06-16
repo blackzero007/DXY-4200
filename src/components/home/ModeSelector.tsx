@@ -248,50 +248,101 @@ export default function ModeSelector() {
     },
   ];
 
+  const renderModeCard = (m: typeof modes[0], i: number) => (
+    <motion.button
+      key={m.title}
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.7, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -8, scale: 1.02 }}
+      whileTap={{ scale: 0.97 }}
+      onClick={m.onClick}
+      className="card-float text-left p-6 md:p-7 group relative overflow-hidden w-full"
+    >
+      <div
+        className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br ${m.gradient}`}
+      />
+      <div className="relative z-10">
+        <div
+          className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl mb-5 flex items-center justify-center text-white bg-gradient-to-br ${m.gradient}`}
+          style={{ boxShadow: '0 10px 30px rgba(99, 102, 241, 0.35)' }}
+        >
+          {m.icon}
+        </div>
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="font-display text-2xl md:text-3xl text-white">{m.title}</h3>
+          <span className="text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/65 border border-white/10">
+            {m.tag}
+          </span>
+        </div>
+        <p className="text-white/55 text-sm md:text-base mb-5">{m.desc}</p>
+        <div className="flex items-center gap-2 text-white/80 font-medium group-hover:text-white transition-colors">
+          <span>立即开始</span>
+          <motion.span
+            animate={{ x: [0, 4, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <ArrowRight className="w-4 h-4" />
+          </motion.span>
+        </div>
+      </div>
+    </motion.button>
+  );
+
   return (
     <section className="w-full px-4 py-6 md:py-12">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
-        {modes.map((m, i) => (
-          <motion.button
-            key={m.title}
-            initial={{ opacity: 0, y: 40 }}
+        {renderModeCard(modes[0], 0)}
+        <div className="flex flex-col gap-5 md:gap-6">
+          {renderModeCard(modes[1], 1)}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-            whileHover={{ y: -8, scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={m.onClick}
-            className="card-float text-left p-6 md:p-7 group relative overflow-hidden"
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="glass-panel rounded-2xl p-3 md:p-4 border border-white/10"
           >
-            <div
-              className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br ${m.gradient}`}
-            />
-            <div className="relative z-10">
-              <div
-                className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl mb-5 flex items-center justify-center text-white bg-gradient-to-br ${m.gradient}`}
-                style={{ boxShadow: '0 10px 30px rgba(99, 102, 241, 0.35)' }}
-              >
-                {m.icon}
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="font-display text-2xl md:text-3xl text-white">{m.title}</h3>
-                <span className="text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/65 border border-white/10">
-                  {m.tag}
-                </span>
-              </div>
-              <p className="text-white/55 text-sm md:text-base mb-5">{m.desc}</p>
-              <div className="flex items-center gap-2 text-white/80 font-medium group-hover:text-white transition-colors">
-                <span>立即开始</span>
-                <motion.span
-                  animate={{ x: [0, 4, 0] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </motion.span>
-              </div>
+            <div className="text-xs text-white/50 mb-2.5 md:mb-3 font-medium flex items-center gap-1.5">
+              <span>🎨</span>
+              <span>选择词链主题</span>
             </div>
-          </motion.button>
-        ))}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => { setSelectedTheme('random'); setShowSolo(true); }}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 rounded-xl text-xs font-medium transition-all border ${
+                  selectedTheme === 'random'
+                    ? 'bg-white/15 text-white border-white/30'
+                    : 'bg-white/5 text-white/65 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20'
+                }`}
+              >
+                <span>🎲</span>
+                <span>随机</span>
+              </button>
+              {THEME_LIST.map((theme) => {
+                const config = THEME_CONFIGS[theme];
+                return (
+                  <button
+                    key={theme}
+                    onClick={() => { setSelectedTheme(theme); setShowSolo(true); }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 rounded-xl text-xs font-medium transition-all border ${
+                      selectedTheme === theme
+                        ? 'bg-white/15 text-white border-white/30'
+                        : 'bg-white/5 text-white/65 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20'
+                    }`}
+                  >
+                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded bg-gradient-to-br ${config.gradient} text-[10px]`}>
+                      {config.emoji}
+                    </span>
+                    <span>{config.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </div>
+        {renderModeCard(modes[2], 2)}
+        {renderModeCard(modes[3], 3)}
       </div>
 
       <CreateModal
