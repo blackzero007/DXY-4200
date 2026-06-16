@@ -105,6 +105,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       createdAt: now,
       reactions: [],
       passCount: 0,
+      turnTimeLimit: 30,
     };
     set({ room: newRoom, localPlayerId: ownerId, localPlayerName: ownerName });
     persistRoom(newRoom);
@@ -172,6 +173,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       createdAt: now,
       reactions: [],
       passCount: 0,
+      turnStartTime: now,
       players: room.players.map(p => ({ ...p, score: 0 })),
     };
     set({ room: newRoom, validationMessage: '', lastValidationValid: null });
@@ -218,6 +220,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       players: newPlayers,
       currentTurnPlayerId: nextPlayerId,
       passCount: 0,
+      turnStartTime: Date.now(),
     };
     set({ room: newRoom, validationMessage: result.message, lastValidationValid: true });
     persistRoom(newRoom);
@@ -244,6 +247,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       currentTurnPlayerId: status === 'ended' ? null : nextPlayerId,
       passCount,
       status,
+      turnStartTime: status === 'ended' ? undefined : Date.now(),
     };
     set({ room: newRoom });
     persistRoom(newRoom);

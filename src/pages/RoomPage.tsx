@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import AnimatedGradientBg from '@/components/shared/AnimatedGradientBg';
@@ -160,6 +160,57 @@ export default function RoomPage() {
   const isMyTurn = room?.currentTurnPlayerId === localPlayerId;
   const isWatcher = room?.players.find(p => p.id === localPlayerId)?.role === 'watcher';
 
+  const turnTimeLimit = room?.turnTimeLimit;
+  const turnStartTime = room?.turnStartTime;
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+  const [countdownProgress, setCountdownProgress] = useState(1);
+  const hasAutoPassedRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      !room ||
+      room.status !== 'playing' ||
+      !turnTimeLimit ||
+      !turnStartTime ||
+      !room.currentTurnPlayerId
+    ) {
+      setCountdownSeconds(null);
+      setCountdownProgress(1);
+      hasAutoPassedRef.current = false;
+      return;
+    }
+
+    hasAutoPassedRef.current = false;
+
+    const tick = () => {
+      const elapsed = (Date.now() - turnStartTime) / 1000;
+      const remaining = Math.max(0, Math.ceil(turnTimeLimit - elapsed));
+      const progress = Math.max(0, Math.min(1, (turnTimeLimit - elapsed) / turnTimeLimit));
+      setCountdownSeconds(remaining);
+      setCountdownProgress(progress);
+    };
+
+    tick();
+    const interval = setInterval(tick, 200);
+
+    return () => clearInterval(interval);
+  }, [room?.status, room?.currentTurnPlayerId, turnTimeLimit, turnStartTime]);
+
+  const handleAutoPass = useCallback(() => {
+    if (hasAutoPassedRef.current) return;
+    if (!room || room.status !== 'playing') return;
+    if (room.currentTurnPlayerId !== localPlayerId) return;
+    hasAutoPassedRef.current = true;
+    passTurn(localPlayerId);
+    setTimeout(() => broadcast('pass-turn'), 30);
+  }, [room?.status, room?.currentTurnPlayerId, localPlayerId, passTurn, broadcast]);
+
+  useEffect(() => {
+    if (countdownSeconds === 0 && isMyTurn && room?.status === 'playing') {
+      handleAutoPass();
+    }
+  }, [countdownSeconds, isMyTurn, room?.status, handleAutoPass]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -179,6 +230,9 @@ export default function RoomPage() {
             isOwner={isOwner}
             playerCount={room?.players.filter(p => p.isOnline).length || 0}
             onShare={handleShare}
+            countdownSeconds={countdownSeconds}
+            countdownProgress={countdownProgress}
+            turnTimeLimit={turnTimeLimit}
           />
         </div>
 

@@ -13,6 +13,9 @@ interface RoomHeaderProps {
   isOwner: boolean;
   playerCount: number;
   onShare?: () => void;
+  countdownSeconds?: number | null;
+  countdownProgress?: number;
+  turnTimeLimit?: number;
 }
 
 export default function RoomHeader({
@@ -22,6 +25,9 @@ export default function RoomHeader({
   isOwner,
   playerCount,
   onShare,
+  countdownSeconds,
+  countdownProgress = 1,
+  turnTimeLimit,
 }: RoomHeaderProps) {
   const navigate = useNavigate();
   const { cleanupRoom, localPlayerId } = useRoomStore();
@@ -79,6 +85,52 @@ export default function RoomHeader({
               )}
             </div>
           </div>
+
+          {countdownSeconds != null && turnTimeLimit && countdownSeconds >= 0 && (
+            <div className="shrink-0 flex items-center justify-center">
+              <div className="relative w-11 h-11 md:w-13 md:h-13">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
+                  <circle
+                    cx="22"
+                    cy="22"
+                    r="18"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.1)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="22"
+                    cy="22"
+                    r="18"
+                    fill="none"
+                    stroke={
+                      countdownSeconds <= 5
+                        ? '#f43f5e'
+                        : countdownSeconds <= 10
+                        ? '#f59e0b'
+                        : '#a78bfa'
+                    }
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={Math.PI * 36}
+                    strokeDashoffset={Math.PI * 36 * (1 - countdownProgress)}
+                    className="transition-all duration-1000 ease-linear"
+                  />
+                </svg>
+                <span
+                  className={`absolute inset-0 flex items-center justify-center font-mono font-bold text-sm md:text-base ${
+                    countdownSeconds <= 5
+                      ? 'text-rose-400'
+                      : countdownSeconds <= 10
+                      ? 'text-amber-300'
+                      : 'text-purple-200'
+                  }`}
+                >
+                  {countdownSeconds}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="hidden sm:flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-2xl glass-panel border border-white/10">
             <span className="text-xs md:text-sm text-white/55">房间码</span>

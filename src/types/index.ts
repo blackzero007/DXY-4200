@@ -31,6 +31,7 @@ export interface Room {
   createdAt: number;
   reactions: { emoji: string; from: string; fromName: string; ts: number }[];
   turnTimeLimit?: number;
+  turnStartTime?: number;
   passCount?: number;
 }
 
