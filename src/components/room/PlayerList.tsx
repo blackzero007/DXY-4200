@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Eye, Ban, ChevronDown, Wifi, WifiOff } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
@@ -24,7 +24,7 @@ export default function PlayerList({
 }: PlayerListProps) {
   const [expanded, setExpanded] = useState(true);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -33,10 +33,10 @@ export default function PlayerList({
     return () => clearInterval(interval);
   }, []);
 
-  const isPlayerOnline = (player: Player): boolean => {
+  const isPlayerOnline = useCallback((player: Player): boolean => {
     if (player.id === localPlayerId) return true;
     return Date.now() - player.lastActive < ONLINE_TIMEOUT;
-  };
+  }, [localPlayerId]);
 
   const realPlayers = players.filter(p => p.role !== 'watcher');
   const watchers = players.filter(p => p.role === 'watcher');
@@ -53,7 +53,7 @@ export default function PlayerList({
       if (b.role === 'watcher' && a.role !== 'watcher') return -1;
       return b.score - a.score;
     });
-  }, [players, setTick]);
+  }, [players, tick, isPlayerOnline]);
 
   return (
     <motion.div
@@ -107,9 +107,10 @@ export default function PlayerList({
                 return (
                   <motion.div
                     key={p.id}
+                    layout
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.04, duration: 0.35 }}
+                    transition={{ delay: idx * 0.04, duration: 0.35, layout: { duration: 0.3 } }}
                     className={`relative flex items-center gap-3 p-2.5 md:p-3 rounded-2xl transition-all ${
                       isCurrentTurn
                         ? 'bg-purple-500/15 border border-purple-400/40 shadow-glow-purple/50'
