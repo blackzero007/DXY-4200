@@ -15,6 +15,7 @@ import ChainStatsPanel from '@/components/game/ChainStatsPanel';
 import { useToast } from '@/components/toast';
 import { useRoomStore } from '@/store/useRoomStore';
 import { useBroadcastChannel } from '@/hooks/useBroadcastChannel';
+import type { Room } from '@/types';
 import { copyToClipboard } from '@/utils/helpers';
 import { playSuccessSound, playFailSound, playGameEndSound } from '@/utils/soundFeedback';
 
@@ -39,6 +40,7 @@ export default function RoomPage() {
     sendReaction,
     endGame,
     clearValidation,
+    updateRoomConfig,
   } = useRoomStore();
 
   const [showNicknameModal, setShowNicknameModal] = useState(false);
@@ -104,6 +106,16 @@ export default function RoomPage() {
     const ok = startGame(localPlayerId, customStartWord);
     if (ok) {
       setTimeout(() => broadcast('start-game'), 40);
+    }
+  };
+
+  const handleUpdateConfig = (config: Partial<Pick<Room, 'name' | 'turnTimeLimit' | 'gameMode' | 'maxPlayers'>>) => {
+    const ok = updateRoomConfig(localPlayerId, config);
+    if (ok) {
+      toast.success('设置已更新');
+      setTimeout(() => broadcast('sync-room'), 30);
+    } else {
+      toast.error('设置更新失败，请检查人数限制');
     }
   };
 
@@ -250,10 +262,13 @@ export default function RoomPage() {
           <div className="flex flex-col lg:flex-row gap-5 md:gap-6">
             <div className="flex-1 flex items-center justify-center py-4">
               <WaitingRoom
-                roomId={roomId}
                 roomName={room.name}
                 isOwner={isOwner}
                 onStartGame={handleStartGame}
+                turnTimeLimit={room.turnTimeLimit}
+                gameMode={room.gameMode}
+                maxPlayers={room.maxPlayers}
+                onUpdateConfig={handleUpdateConfig}
               />
             </div>
             <div className="w-full lg:w-80 shrink-0">

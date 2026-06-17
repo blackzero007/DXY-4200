@@ -28,6 +28,7 @@ interface RoomStore {
   clearValidation: () => void;
   clearLastReaction: () => void;
   getNextPlayerId: () => string | null;
+  updateRoomConfig: (playerId: string, config: Partial<Pick<Room, 'name' | 'turnTimeLimit' | 'gameMode' | 'maxPlayers'>>) => boolean;
 }
 
 const storedPlayerId = (() => {
@@ -59,7 +60,13 @@ function persistRoom(room: Room) {
 function loadRoom(roomId: string): Room | null {
   try {
     const raw = localStorage.getItem(`wordchain_room_${roomId}`);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gameMode: 'startWith',
+      maxPlayers: 8,
+      ...parsed,
+    };
   } catch {
     return null;
   }
@@ -108,6 +115,8 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       reactions: [],
       passCount: 0,
       turnTimeLimit: 30,
+      gameMode: 'startWith',
+      maxPlayers: 8,
     };
     set({ room: newRoom, localPlayerId: ownerId, localPlayerName: ownerName });
     persistRoom(newRoom);
@@ -129,6 +138,10 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
         p.id === playerId ? { ...p, name: playerName, isOnline: true, lastActive: now } : p
       );
     } else {
+      const realPlayers = saved.players.filter(p => p.role !== 'watcher');
+      if (!asWatcher && realPlayers.length >= (saved.maxPlayers || 8)) {
+        return { playerId: '', success: false, message: `房间玩家已满（最多 ${saved.maxPlayers || 8} 人），可以以围观者身份加入` };
+      }
       const colorIdx = saved.players.length;
       const newPlayer: Player = {
         id: playerId,
@@ -192,7 +205,9 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       return { success: false, message: '还没轮到你哦' };
     }
     const newAttempts = state.totalAttempts + 1;
-    const result = validateWord(word, room.currentWord, room.chain);
+    const result = validateWord(word, room.currentWord, room.chain, {
+      containsMode: room.gameMode || 'startWith',
+    });
     if (!result.valid) {
       set({ validationMessage: result.message, lastValidationValid: false, totalAttempts: newAttempts });
       return { success: false, message: result.message };
@@ -310,8 +325,13 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     switch (msg.type) {
       case 'sync-room':
         if (msg.payload?.room) {
-          set({ room: msg.payload.room });
-          persistRoom(msg.payload.room);
+          const syncedRoom: Room = {
+            gameMode: 'startWith',
+            maxPlayers: 8,
+            ...msg.payload.room,
+          };
+          set({ room: syncedRoom });
+          persistRoom(syncedRoom);
         }
         break;
       case 'join-room': {
@@ -350,8 +370,13 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       case 'reaction':
       case 'player-active':
         if (msg.payload?.room) {
-          set({ room: msg.payload.room });
-          persistRoom(msg.payload.room);
+          const syncedRoom: Room = {
+            gameMode: 'startWith',
+            maxPlayers: 8,
+            ...msg.payload.room,
+          };
+          set({ room: syncedRoom });
+          persistRoom(syncedRoom);
           if (msg.type === 'reaction' && msg.payload.lastReaction) {
             set({ lastReaction: msg.payload.lastReaction });
           }
@@ -416,5 +441,28 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
     const room = get().room;
     if (!room) return null;
     return room.currentTurnPlayerId;
+  },
+
+  updateRoomConfig: (playerId, config) => {
+    const state = get();
+    const room = state.room;
+    if (!room) return false;
+    if (room.ownerId !== playerId) return false;
+    if (room.status !== 'waiting') return false;
+
+    if (config.maxPlayers !== undefined) {
+      const realPlayers = room.players.filter(p => p.role !== 'watcher');
+      if (config.maxPlayers < realPlayers.length) {
+        return false;
+      }
+    }
+
+    const newRoom: Room = {
+      ...room,
+      ...config,
+    };
+    set({ room: newRoom });
+    persistRoom(newRoom);
+    return true;
   },
 }));

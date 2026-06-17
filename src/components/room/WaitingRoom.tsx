@@ -1,28 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Sparkles, Shuffle, Loader2 } from 'lucide-react';
-import Avatar from '@/components/shared/Avatar';
+import { Play, Sparkles, Shuffle, Loader2, Settings, X, Clock, Users, Gamepad2 } from 'lucide-react';
 import FloatingParticles from '@/components/shared/FloatingParticles';
 import { START_WORDS, getRandomStartWord } from '@/utils/wordDatabase';
+import type { Room } from '@/types';
 
 interface WaitingRoomProps {
-  roomId: string;
   roomName: string;
   isOwner: boolean;
   onStartGame: (startWord: string) => void;
   isStarting?: boolean;
+  turnTimeLimit?: number;
+  gameMode?: 'contains' | 'startWith';
+  maxPlayers?: number;
+  onUpdateConfig?: (config: Partial<Pick<Room, 'name' | 'turnTimeLimit' | 'gameMode' | 'maxPlayers'>>) => void;
 }
 
 export default function WaitingRoom({
-  roomId,
   roomName,
   isOwner,
   onStartGame,
   isStarting = false,
+  turnTimeLimit = 30,
+  gameMode = 'startWith',
+  maxPlayers = 8,
+  onUpdateConfig,
 }: WaitingRoomProps) {
   const [customWord, setCustomWord] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [isShuffling, setIsShuffling] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [configRoomName, setConfigRoomName] = useState(roomName);
+  const [configTimeLimit, setConfigTimeLimit] = useState<number | undefined>(turnTimeLimit);
+  const [configGameMode, setConfigGameMode] = useState<'contains' | 'startWith'>(gameMode);
+  const [configMaxPlayers, setConfigMaxPlayers] = useState(maxPlayers);
+
+  useEffect(() => {
+    setConfigRoomName(roomName);
+    setConfigTimeLimit(turnTimeLimit);
+    setConfigGameMode(gameMode);
+    setConfigMaxPlayers(maxPlayers);
+  }, [roomName, turnTimeLimit, gameMode, maxPlayers]);
+
+  const handleOpenSettings = () => {
+    setConfigRoomName(roomName);
+    setConfigTimeLimit(turnTimeLimit);
+    setConfigGameMode(gameMode);
+    setConfigMaxPlayers(maxPlayers);
+    setShowSettings(true);
+  };
+
+  const handleSaveConfig = () => {
+    if (onUpdateConfig) {
+      onUpdateConfig({
+        name: configRoomName.trim() || roomName,
+        turnTimeLimit: configTimeLimit,
+        gameMode: configGameMode,
+        maxPlayers: configMaxPlayers,
+      });
+    }
+    setShowSettings(false);
+  };
 
   const suggestedWords = [
     ...START_WORDS.slice(0, 5),
@@ -49,6 +87,19 @@ export default function WaitingRoom({
       <FloatingParticles count={22} />
 
       <div className="relative z-10">
+        {isOwner && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            onClick={handleOpenSettings}
+            className="absolute top-0 right-0 p-2.5 rounded-2xl glass-panel border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all"
+            title="房间设置"
+          >
+            <Settings className="w-5 h-5" />
+          </motion.button>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -188,6 +239,148 @@ export default function WaitingRoom({
           </motion.div>
         )}
       </div>
+
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+            onClick={() => setShowSettings(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+              className="w-full max-w-md glass-panel rounded-3xl p-6 md:p-8 border-gradient"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-display text-2xl md:text-3xl text-white">
+                  <span className="text-gradient">房间设置</span>
+                </h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm text-white/70 mb-1.5 block">房间名称</label>
+                  <input
+                    type="text"
+                    value={configRoomName}
+                    onChange={(e) => setConfigRoomName(e.target.value)}
+                    placeholder="输入房间名称"
+                    className="input-base"
+                    maxLength={20}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/70 mb-2 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    每回合时间限制
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { value: 15, label: '15秒' },
+                      { value: 30, label: '30秒' },
+                      { value: 60, label: '60秒' },
+                      { value: undefined, label: '无限制' },
+                    ].map((option) => (
+                      <button
+                        key={option.label}
+                        onClick={() => setConfigTimeLimit(option.value)}
+                        className={`py-2 px-3 rounded-xl font-medium text-sm transition-all ${
+                          configTimeLimit === option.value
+                            ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-glow-purple'
+                            : 'glass-panel text-white/70 hover:text-white border border-white/10'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/70 mb-2 flex items-center gap-2">
+                    <Gamepad2 className="w-4 h-4" />
+                    游戏模式
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setConfigGameMode('contains')}
+                      className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                        configGameMode === 'contains'
+                          ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-glow-purple'
+                          : 'glass-panel text-white/70 hover:text-white border border-white/10'
+                      }`}
+                    >
+                      <div className="font-display text-base mb-0.5">花式模式</div>
+                      <div className="text-xs opacity-70">包含上词尾字即可</div>
+                    </button>
+                    <button
+                      onClick={() => setConfigGameMode('startWith')}
+                      className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                        configGameMode === 'startWith'
+                          ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-glow-purple'
+                          : 'glass-panel text-white/70 hover:text-white border border-white/10'
+                      }`}
+                    >
+                      <div className="font-display text-base mb-0.5">严格模式</div>
+                      <div className="text-xs opacity-70">必须以上词尾字开头</div>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/70 mb-2 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    最大玩家人数（{configMaxPlayers}人）
+                  </label>
+                  <input
+                    type="range"
+                    min="2"
+                    max="8"
+                    step="1"
+                    value={configMaxPlayers}
+                    onChange={(e) => setConfigMaxPlayers(parseInt(e.target.value))}
+                    className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div className="flex justify-between text-xs text-white/40 mt-1">
+                    <span>2人</span>
+                    <span>4人</span>
+                    <span>6人</span>
+                    <span>8人</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button
+                  className="btn-secondary flex-1"
+                  onClick={() => setShowSettings(false)}
+                >
+                  取消
+                </button>
+                <button
+                  className="btn-primary flex-1"
+                  onClick={handleSaveConfig}
+                >
+                  保存设置
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

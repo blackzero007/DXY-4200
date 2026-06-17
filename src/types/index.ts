@@ -33,6 +33,8 @@ export interface Room {
   turnTimeLimit?: number;
   turnStartTime?: number;
   passCount?: number;
+  gameMode: 'contains' | 'startWith';
+  maxPlayers: number;
 }
 
 export interface ValidationResult {
