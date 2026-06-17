@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, RefreshCw, Lightbulb } from 'lucide-react';
-import { getLastChar, getHintWords } from '@/utils/wordDatabase';
+import { Send, Sparkles, RefreshCw, Lightbulb, History, Clock } from 'lucide-react';
+import { getLastChar, getHintWords, getFirstChar, charMatch, START_WORDS } from '@/utils/wordDatabase';
 
 interface WordInputAreaProps {
   lastWord: string;
@@ -37,10 +37,42 @@ export default function WordInputArea({
   const [isPulsing, setIsPulsing] = useState(false);
   const [hintWords, setHintWords] = useState<string[]>([]);
   const [showHints, setShowHints] = useState(false);
+  const [inputHistory, setInputHistory] = useState<string[]>([]);
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const lastChar = getLastChar(lastWord);
+
+  const MAX_LENGTH = 20;
+  const charCountColor = useMemo(() => {
+    const ratio = value.length / MAX_LENGTH;
+    if (ratio >= 0.9) return 'text-orange-400';
+    if (ratio >= 0.7) return 'text-amber-400';
+    return 'text-emerald-400';
+  }, [value.length]);
+
+  const liveSuggestions = useMemo(() => {
+    if (value.length === 0) return [];
+    const currentLastChar = getLastChar(value);
+    if (!currentLastChar) return [];
+    const matched = START_WORDS.filter((word) => {
+      if (word === value) return false;
+      if (inputHistory.includes(word)) return false;
+      const firstChar = getFirstChar(word);
+      return charMatch(firstChar, currentLastChar, allowHomophone);
+    });
+    return matched.slice(0, 3);
+  }, [value, allowHomophone, inputHistory]);
+
+  const handleHistoryClick = (word: string) => {
+    setValue(word);
+    inputRef.current?.focus();
+  };
+
+  const handleLiveSuggestionClick = (word: string) => {
+    setValue(word);
+    inputRef.current?.focus();
+  };
 
   useEffect(() => {
     setValue('');
@@ -104,6 +136,11 @@ export default function WordInputArea({
     if (!trimmed || disabled || !isMyTurn) return;
     const result = onSubmit(trimmed);
     if (result.success) {
+      setInputHistory((prev) => {
+        const filtered = prev.filter((w) => w !== trimmed);
+        const updated = [trimmed, ...filtered];
+        return updated.slice(0, 5);
+      });
       setValue('');
     }
   };
@@ -213,11 +250,9 @@ export default function WordInputArea({
               className="w-full bg-transparent outline-none text-white placeholder-white/35 text-base md:text-xl py-3 md:py-3.5 px-4 md:px-5 rounded-2xl disabled:cursor-not-allowed"
               maxLength={20}
             />
-            {value.length > 0 && (
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-white/40">
-                {value.length}/20
-              </span>
-            )}
+            <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold transition-colors duration-300 ${charCountColor}`}>
+              {value.length}/{MAX_LENGTH}
+            </span>
           </div>
           {isMyTurn && !disabled && (
             <motion.button
@@ -257,6 +292,71 @@ export default function WordInputArea({
           </motion.button>
         </div>
       </motion.div>
+
+      <div className="mt-3 space-y-2">
+        <AnimatePresence>
+          {liveSuggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              className="flex items-center gap-2 flex-wrap"
+            >
+              <span className="text-xs text-white/30 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                联想
+              </span>
+              {liveSuggestions.map((word, index) => (
+                <motion.button
+                  key={`live-${word}-${index}`}
+                  type="button"
+                  onClick={() => handleLiveSuggestionClick(word)}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.05, color: 'rgba(255,255,255,0.8)' }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-2.5 py-1 rounded-lg text-xs md:text-sm text-white/40 hover:text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all"
+                >
+                  {word}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {inputHistory.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              className="flex items-center gap-2 flex-wrap"
+            >
+              <span className="text-xs text-white/30 flex items-center gap-1">
+                <History className="w-3 h-3" />
+                最近
+              </span>
+              {inputHistory.map((word, index) => (
+                <motion.button
+                  key={`history-${word}-${index}`}
+                  type="button"
+                  onClick={() => handleHistoryClick(word)}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-2.5 py-1 rounded-lg text-xs md:text-sm text-purple-300/80 hover:text-purple-200 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-400/20 hover:border-purple-400/40 transition-all flex items-center gap-1"
+                >
+                  <Clock className="w-2.5 h-2.5 opacity-60" />
+                  {word}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
