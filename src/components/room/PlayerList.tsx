@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Eye, Crown, Ban, ChevronDown } from 'lucide-react';
+import { Users, Eye, Ban, ChevronDown, Wifi, WifiOff } from 'lucide-react';
 import Avatar from '@/components/shared/Avatar';
 import type { Player } from '@/types';
+
+const ONLINE_TIMEOUT = 30 * 1000;
 
 interface PlayerListProps {
   players: Player[];
@@ -22,16 +24,36 @@ export default function PlayerList({
 }: PlayerListProps) {
   const [expanded, setExpanded] = useState(true);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isPlayerOnline = (player: Player): boolean => {
+    if (player.id === localPlayerId) return true;
+    return Date.now() - player.lastActive < ONLINE_TIMEOUT;
+  };
 
   const realPlayers = players.filter(p => p.role !== 'watcher');
   const watchers = players.filter(p => p.role === 'watcher');
-  const sortedPlayers = [...players].sort((a, b) => {
-    if (a.role === 'owner' && b.role !== 'owner') return -1;
-    if (b.role === 'owner' && a.role !== 'owner') return 1;
-    if (a.role === 'watcher' && b.role !== 'watcher') return 1;
-    if (b.role === 'watcher' && a.role !== 'watcher') return -1;
-    return 0;
-  });
+
+  const sortedPlayers = useMemo(() => {
+    return [...players].sort((a, b) => {
+      const aOnline = isPlayerOnline(a);
+      const bOnline = isPlayerOnline(b);
+      if (aOnline && !bOnline) return -1;
+      if (!aOnline && bOnline) return 1;
+      if (a.role === 'owner' && b.role !== 'owner') return -1;
+      if (b.role === 'owner' && a.role !== 'owner') return 1;
+      if (a.role === 'watcher' && b.role !== 'watcher') return 1;
+      if (b.role === 'watcher' && a.role !== 'watcher') return -1;
+      return b.score - a.score;
+    });
+  }, [players, setTick]);
 
   return (
     <motion.div
@@ -80,6 +102,7 @@ export default function PlayerList({
                 const isCurrentTurn = currentTurnPlayerId === p.id;
                 const isLocal = p.id === localPlayerId;
                 const isMenuOpen = menuOpen === p.id;
+                const online = isPlayerOnline(p);
 
                 return (
                   <motion.div
@@ -90,7 +113,9 @@ export default function PlayerList({
                     className={`relative flex items-center gap-3 p-2.5 md:p-3 rounded-2xl transition-all ${
                       isCurrentTurn
                         ? 'bg-purple-500/15 border border-purple-400/40 shadow-glow-purple/50'
-                        : 'hover:bg-white/5 border border-transparent'
+                        : online
+                        ? 'hover:bg-white/5 border border-transparent'
+                        : 'bg-white/[0.02] border border-white/5'
                     }`}
                   >
                     <Avatar
@@ -99,26 +124,46 @@ export default function PlayerList({
                       size="md"
                       isOwner={p.role === 'owner'}
                       isWatcher={p.role === 'watcher'}
-                      isOnline={p.isOnline}
+                      isOnline={online}
                       isCurrentTurn={isCurrentTurn}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className={`font-medium truncate ${isLocal ? 'text-purple-200' : 'text-white/90'}`}>
+                        <span className={`font-medium truncate ${
+                          isLocal ? 'text-purple-200' : online ? 'text-white/90' : 'text-white/40'
+                        }`}>
                           {p.name}
                           {isLocal && <span className="text-xs ml-1 text-purple-300">(我)</span>}
                         </span>
                         {p.role === 'watcher' && (
-                          <Eye className="w-3 h-3 text-sky-400 shrink-0" />
+                          <Eye className={`w-3 h-3 shrink-0 ${online ? 'text-sky-400' : 'text-sky-400/40'}`} />
+                        )}
+                        {!online && (
+                          <span className="inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400 text-[10px] font-medium">
+                            <WifiOff className="w-2.5 h-2.5" />
+                            离线
+                          </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-white/55">
-                        <span>{p.isOnline ? '🟢 在线' : '⚪ 离线'}</span>
-                        <span>·</span>
-                        <span>接词 {p.score} 次</span>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs">
+                        {online ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-400">
+                            <Wifi className="w-3 h-3" />
+                            在线
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-zinc-500">
+                            <WifiOff className="w-3 h-3" />
+                            离线
+                          </span>
+                        )}
+                        <span className={online ? 'text-white/55' : 'text-white/30'}>·</span>
+                        <span className={online ? 'text-white/55' : 'text-white/30'}>
+                          接词 {p.score} 次
+                        </span>
                         {isCurrentTurn && (
                           <>
-                            <span>·</span>
+                            <span className="text-white/55">·</span>
                             <span className="text-purple-300 font-medium animate-pulse">
                               回合中 ⏳
                             </span>
