@@ -8,6 +8,9 @@ interface WordBlockProps {
   isFirst?: boolean;
   layout?: 'horizontal' | 'vertical';
   index?: number;
+  isHighlighted?: boolean;
+  isDimmed?: boolean;
+  searchQuery?: string;
 }
 
 const COLOR_PALETTE = [
@@ -27,10 +30,17 @@ export default function WordBlock({
   isFirst = false,
   layout = 'horizontal',
   index = 0,
+  isHighlighted = false,
+  isDimmed = false,
+  searchQuery = '',
 }: WordBlockProps) {
   const chars = word.word.split('');
   const lastChar = getLastChar(word.word);
   const firstChar = getFirstChar(word.word);
+  const query = searchQuery.toLowerCase();
+  const wordLower = word.word.toLowerCase();
+  const matchStart = query ? wordLower.indexOf(query) : -1;
+  const matchEnd = matchStart >= 0 ? matchStart + query.length : -1;
   const gradientClass =
     word.authorColor && word.authorColor.startsWith('from-')
       ? word.authorColor
@@ -51,8 +61,8 @@ export default function WordBlock({
           ? { duration: 0.55, type: 'spring', stiffness: 260, damping: 18 }
           : { duration: 0.3 }
       }
-      className="relative group"
-      whileHover={{ scale: 1.06, y: -4 }}
+      className={`relative group ${isDimmed ? 'opacity-40' : ''}`}
+      whileHover={isDimmed ? {} : { scale: 1.06, y: -4 }}
     >
       {isLatest && (
         <motion.span
@@ -67,7 +77,9 @@ export default function WordBlock({
       )}
 
       <div
-        className={`relative chain-word-shadow rounded-3xl px-5 py-4 md:px-7 md:py-5 bg-gradient-to-br ${bgGradient} overflow-hidden`}
+        className={`relative chain-word-shadow rounded-3xl px-5 py-4 md:px-7 md:py-5 bg-gradient-to-br ${bgGradient} overflow-hidden ${
+          isHighlighted ? 'ring-4 ring-yellow-300 ring-opacity-90 shadow-[0_0_30px_rgba(253,224,71,0.5)]' : ''
+        }`}
         style={{
           minWidth: layout === 'horizontal' ? '120px' : 'auto',
         }}
@@ -91,6 +103,7 @@ export default function WordBlock({
           {chars.map((ch, i) => {
             const isStartChar = i === 0;
             const isEndChar = i === chars.length - 1;
+            const isInSearchMatch = matchStart >= 0 && i >= matchStart && i < matchEnd;
             return (
               <motion.span
                 key={i}
@@ -107,9 +120,13 @@ export default function WordBlock({
                     : isEndChar && isLatest
                     ? 'text-yellow-100 animate-bounce-soft'
                     : ''
+                } ${
+                  isInSearchMatch
+                    ? 'bg-yellow-300/80 text-ink-900 rounded-md px-0.5 md:px-1 -mx-0.5'
+                    : ''
                 }`}
                 style={{
-                  textShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                  textShadow: isInSearchMatch ? 'none' : '0 2px 8px rgba(0,0,0,0.35)',
                   letterSpacing: '0.03em',
                 }}
               >

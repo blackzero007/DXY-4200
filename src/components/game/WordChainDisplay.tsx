@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ChevronDown } from 'lucide-react';
+import { ArrowRight, ChevronDown, Search, X, Users } from 'lucide-react';
 import WordBlock from './WordBlock';
 import ChainConnector from './ChainConnector';
 import type { ChainWord } from '@/types';
@@ -15,6 +15,10 @@ export default function WordChainDisplay({ chain, className = '' }: WordChainDis
   const [isMobile, setIsMobile] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [showJumpButton, setShowJumpButton] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAuthor, setSelectedAuthor] = useState<string>('all');
+  const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false);
+  const authorDropdownRef = useRef<HTMLDivElement>(null);
 
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
@@ -28,6 +32,54 @@ export default function WordChainDisplay({ chain, className = '' }: WordChainDis
   const velocityRef = useRef({ vx: 0, vy: 0 });
   const lastTouchPosRef = useRef({ x: 0, y: 0, t: 0 });
   const inertiaRafRef = useRef<number | null>(null);
+
+  const uniqueAuthors = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; color: string }>();
+    chain.forEach((w) => {
+      if (!map.has(w.authorId)) {
+        map.set(w.authorId, {
+          id: w.authorId,
+          name: w.authorId === 'system' ? '✨ 系统起词' : w.authorName,
+          color: w.authorColor,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [chain]);
+
+  const hasActiveFilter = searchQuery.trim() !== '' || selectedAuthor !== 'all';
+
+  const getWordMatchState = useCallback(
+    (word: ChainWord) => {
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch = query === '' || word.word.toLowerCase().includes(query);
+      const matchesAuthor = selectedAuthor === 'all' || word.authorId === selectedAuthor;
+
+      if (!hasActiveFilter) {
+        return { isHighlighted: false, isDimmed: false };
+      }
+
+      const isMatch = matchesSearch && matchesAuthor;
+      return {
+        isHighlighted: query !== '' && matchesSearch && matchesAuthor,
+        isDimmed: !isMatch,
+      };
+    },
+    [searchQuery, selectedAuthor, hasActiveFilter]
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        authorDropdownRef.current &&
+        !authorDropdownRef.current.contains(e.target as Node)
+      ) {
+        setAuthorDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -203,6 +255,125 @@ export default function WordChainDisplay({ chain, className = '' }: WordChainDis
       <div className={`absolute inset-y-0 left-0 w-16 md:w-20 bg-gradient-to-r from-ink-900/90 to-transparent pointer-events-none z-20 rounded-l-3xl ${isMobile ? 'hidden' : ''}`} />
       <div className={`absolute inset-y-0 right-0 w-16 md:w-20 bg-gradient-to-l from-ink-900/90 to-transparent pointer-events-none z-20 rounded-r-3xl ${isMobile ? 'hidden' : ''}`} />
 
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 md:gap-3 w-[92%] md:w-auto md:min-w-[480px]">
+        <div className="relative flex-1 md:flex-none md:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索词链中的词…"
+            className="w-full pl-9 pr-9 py-2 md:py-2.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10
+                       text-white/80 placeholder:text-white/30 text-sm font-medium
+                       focus:outline-none focus:border-indigo-400/50 focus:bg-white/10
+                       transition-all duration-200"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full
+                         hover:bg-white/10 transition-colors text-white/50 hover:text-white/80"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div ref={authorDropdownRef} className="relative flex-shrink-0">
+          <button
+            onClick={() => setAuthorDropdownOpen((v) => !v)}
+            className={`inline-flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full
+                       bg-white/5 backdrop-blur-md border text-sm font-medium
+                       transition-all duration-200 focus:outline-none ${
+                         selectedAuthor !== 'all'
+                           ? 'border-indigo-400/50 bg-indigo-500/10 text-white'
+                           : 'border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
+                       }`}
+          >
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {selectedAuthor === 'all'
+                ? '全部玩家'
+                : uniqueAuthors.find((a) => a.id === selectedAuthor)?.name ?? '全部玩家'}
+            </span>
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                authorDropdownOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+
+          <AnimatePresence>
+            {authorDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-full mt-2 min-w-[180px] rounded-2xl
+                           bg-ink-800/95 backdrop-blur-xl border border-white/10
+                           shadow-2xl py-1.5 z-50 overflow-hidden"
+              >
+                <button
+                  onClick={() => {
+                    setSelectedAuthor('all');
+                    setAuthorDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                    selectedAuthor === 'all'
+                      ? 'bg-indigo-500/20 text-white'
+                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  🎯 全部玩家
+                </button>
+                <div className="my-1 border-t border-white/10" />
+                {uniqueAuthors.map((author) => (
+                  <button
+                    key={author.id}
+                    onClick={() => {
+                      setSelectedAuthor(author.id);
+                      setAuthorDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2 ${
+                      selectedAuthor === author.id
+                        ? 'bg-indigo-500/20 text-white'
+                        : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full bg-gradient-to-br"
+                      style={{
+                        background:
+                          author.color && author.color.startsWith('from-')
+                            ? undefined
+                            : author.color || '#a78bfa',
+                      }}
+                    />
+                    {author.name}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {hasActiveFilter && (
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedAuthor('all');
+            }}
+            className="hidden md:inline-flex items-center gap-1 px-3 py-2 rounded-full
+                       bg-rose-500/10 border border-rose-400/30 text-rose-300 text-xs font-medium
+                       hover:bg-rose-500/20 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+            清除筛选
+          </button>
+        )}
+      </div>
+
       <div
         ref={scrollRef}
         onMouseDown={handleMouseDown}
@@ -212,7 +383,7 @@ export default function WordChainDisplay({ chain, className = '' }: WordChainDis
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`relative overflow-auto custom-scrollbar px-6 py-8 md:px-10 md:py-12 ${
+        className={`relative overflow-auto custom-scrollbar px-6 pt-14 pb-8 md:px-10 md:pt-16 md:pb-12 ${
           isMobile
             ? 'max-h-[48vh] flex flex-col items-center'
             : 'min-h-[38vh] md:min-h-[40vh] whitespace-nowrap flex items-center cursor-grab active:cursor-grabbing'
@@ -238,29 +409,40 @@ export default function WordChainDisplay({ chain, className = '' }: WordChainDis
             } mx-auto`}
           >
             <AnimatePresence mode="popLayout">
-              {chain.map((w, i) => (
-                <motion.div
-                  key={w.id}
-                  layout
-                  className={`flex ${isMobile ? 'flex-col items-center' : 'items-center'}`}
-                >
-                  <WordBlock
-                    word={w}
-                    isFirst={i === 0}
-                    isLatest={i === latestIndex}
-                    layout={layout}
-                    index={i}
-                  />
-                  {i < chain.length - 1 && (
-                    <ChainConnector
-                      animated={i === latestIndex - 1}
+              {chain.map((w, i) => {
+                const { isHighlighted, isDimmed } = getWordMatchState(w);
+                const nextWord = chain[i + 1];
+                const connectorDimmed =
+                  hasActiveFilter && (isDimmed || (nextWord ? getWordMatchState(nextWord).isDimmed : false));
+                return (
+                  <motion.div
+                    key={w.id}
+                    layout
+                    className={`flex ${isMobile ? 'flex-col items-center' : 'items-center'}`}
+                  >
+                    <WordBlock
+                      word={w}
+                      isFirst={i === 0}
+                      isLatest={i === latestIndex}
                       layout={layout}
-                      delay={i === latestIndex - 1 ? 0.35 : 0}
                       index={i}
+                      isHighlighted={isHighlighted}
+                      isDimmed={isDimmed}
+                      searchQuery={searchQuery}
                     />
-                  )}
-                </motion.div>
-              ))}
+                    {i < chain.length - 1 && (
+                      <div className={connectorDimmed ? 'opacity-40 transition-opacity duration-300' : 'transition-opacity duration-300'}>
+                        <ChainConnector
+                          animated={i === latestIndex - 1}
+                          layout={layout}
+                          delay={i === latestIndex - 1 ? 0.35 : 0}
+                          index={i}
+                        />
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         )}
